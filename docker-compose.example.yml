@@ -1,0 +1,12 @@
+services:
+  dewey:
+    build: .
+    container_name: dewey
+    env_file:
+      - .env
+    ports:
+      - "8686:8686"
+    volumes:
+      - ./config:/config
+      - /data:/data
+    restart: unless-stopped

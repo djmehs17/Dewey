@@ -1,0 +1,406 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Dewey</title>
+    <link rel="icon" href="/static/favicon.svg?v=20260522" type="image/svg+xml" />
+    <link rel="stylesheet" href="/static/style.css?v=20260527-auth" />
+  </head>
+  <body>
+    <div class="app-shell">
+      <header class="topbar">
+        <div class="brand">
+          <img class="brand-logo" src="/static/dewey-logo.png?v=20260522-raster" alt="Dewey" width="178" height="66" />
+          <p>Audiobooks</p>
+        </div>
+        <nav aria-label="Primary">
+          <button class="nav-button is-active" data-view-button="search" type="button">Search</button>
+          <button class="nav-button" data-view-button="account" type="button">Account</button>
+          <button class="nav-button" data-view-button="profiles" type="button">Profiles</button>
+          <button class="nav-button" data-view-button="diagnostics" type="button">Diagnostics</button>
+          <button class="nav-button" data-view-button="settings" type="button">Settings</button>
+          <button id="logout-button" class="nav-button nav-logout" type="button" hidden>Log Out</button>
+        </nav>
+      </header>
+
+      <div class="workspace">
+        <div class="workspace-bar">
+          <strong id="workspace-title">Search</strong>
+        </div>
+
+        <main>
+      <section class="view is-active" data-view="search">
+        <section class="panel search-panel">
+          <form id="search-form" class="search-form">
+            <label for="query">Title</label>
+            <div class="search-row">
+              <input id="query" name="query" autocomplete="off" placeholder="The Way of Kings" required />
+              <button type="submit">Search</button>
+            </div>
+            <div class="filter-row">
+              <label>Profile
+                <select id="profile-filter" name="profile" aria-label="Search profile">
+                  <option value="custom">Custom</option>
+                </select>
+              </label>
+              <label>Format
+              <select id="format-filter" name="format" aria-label="Format">
+                <option value="">Any format</option>
+                <option value="m4b">M4B</option>
+                <option value="mp3">MP3</option>
+                <option value="m4a">M4A</option>
+                <option value="flac">FLAC</option>
+              </select>
+              </label>
+              <label>Availability
+                <select id="availability-filter" name="search_type">
+                  <option value="all">Any</option>
+                  <option value="active">Active</option>
+                  <option value="fl">Freeleech</option>
+                  <option value="fl-VIP">Freeleech or VIP</option>
+                  <option value="VIP">VIP only</option>
+                  <option value="nVIP">No VIP</option>
+                  <option value="inactive">Inactive</option>
+                </select>
+              </label>
+              <label>MAM category
+                <select id="category-filter" name="category">
+                  <option value="13">Audiobooks</option>
+                  <option value="14">E-books</option>
+                  <option value="15">Musicology</option>
+                  <option value="16">Radio</option>
+                </select>
+              </label>
+            </div>
+            <details class="advanced-filters">
+              <summary>Advanced filters</summary>
+              <div class="filter-row advanced-filter-row">
+                <label>Language<input id="language-filter" name="language" autocomplete="off" placeholder="ENG" /></label>
+                <label>Min seeds<input id="seeders-filter" name="min_seeders" type="number" min="0" step="1" /></label>
+                <label>Min match<input id="relevance-filter" name="min_relevance" type="number" min="0" max="100" step="1" /></label>
+              </div>
+            </details>
+          </form>
+          <p id="search-message" class="message" role="status"></p>
+        </section>
+
+        <section class="panel">
+          <div class="section-head">
+            <h2>Results</h2>
+            <span id="result-count" class="muted"></span>
+          </div>
+          <div class="table-wrap">
+            <table>
+              <thead>
+                <tr>
+                  <th>Title</th>
+                  <th>Book</th>
+                  <th>Size</th>
+                  <th>Activity</th>
+                  <th>Source</th>
+                  <th></th>
+                </tr>
+              </thead>
+              <tbody id="results-body">
+                <tr class="empty-row">
+                  <td colspan="6" class="empty">No search yet.</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </section>
+
+        <section class="panel">
+          <div class="section-head">
+            <h2>Imports</h2>
+            <div class="section-actions">
+              <button id="clear-imports" class="secondary danger" type="button">Clear Finished</button>
+              <button id="refresh-imports" class="secondary" type="button">Refresh</button>
+            </div>
+          </div>
+          <div id="imports" class="imports"></div>
+        </section>
+      </section>
+
+      <section class="view" data-view="account">
+        <section class="panel">
+          <div class="section-head">
+            <h2>MAM Account</h2>
+            <button id="refresh-mam-account" class="secondary" type="button">Refresh Account</button>
+          </div>
+          <div id="account-summary" class="account-summary"></div>
+          <p id="account-message" class="message" role="status"></p>
+        </section>
+      </section>
+
+      <section class="view" data-view="profiles">
+        <section class="panel">
+          <div class="section-head">
+            <h2>Search Profiles</h2>
+            <button id="add-profile" class="secondary" type="button">New Profile</button>
+          </div>
+          <div class="profile-manager">
+            <label>Profile<select id="profile-editor-list"></select></label>
+            <div class="grid">
+              <label>Name<input id="profile-name" autocomplete="off" /></label>
+              <label>Format
+                <select id="profile-format">
+                  <option value="">Any format</option>
+                  <option value="m4b">M4B</option>
+                  <option value="mp3">MP3</option>
+                  <option value="m4a">M4A</option>
+                  <option value="flac">FLAC</option>
+                </select>
+              </label>
+              <label>Language<input id="profile-language" autocomplete="off" placeholder="ENG" /></label>
+              <label>Min seeds<input id="profile-min-seeders" type="number" min="0" step="1" /></label>
+              <label>Min match<input id="profile-min-relevance" type="number" min="0" max="100" step="1" /></label>
+              <label>Availability
+                <select id="profile-search-type">
+                  <option value="all">Any</option>
+                  <option value="active">Active</option>
+                  <option value="fl">Freeleech</option>
+                  <option value="fl-VIP">Freeleech or VIP</option>
+                  <option value="VIP">VIP only</option>
+                  <option value="nVIP">No VIP</option>
+                  <option value="inactive">Inactive</option>
+                </select>
+              </label>
+              <label>MAM category
+                <select id="profile-category">
+                  <option value="13">Audiobooks</option>
+                  <option value="14">E-books</option>
+                  <option value="15">Musicology</option>
+                  <option value="16">Radio</option>
+                </select>
+              </label>
+            </div>
+            <div class="section-actions profile-actions">
+              <button id="save-profile" type="button">Save Profile</button>
+              <button id="delete-profile" class="secondary danger" type="button">Delete</button>
+            </div>
+          </div>
+          <p id="profiles-message" class="message" role="status"></p>
+        </section>
+      </section>
+
+      <section class="view" data-view="diagnostics">
+        <section class="panel">
+          <div class="section-head">
+            <h2>Diagnostics</h2>
+            <button id="refresh-diagnostics" class="secondary" type="button">Run Checks</button>
+          </div>
+          <div id="diagnostics-summary" class="diagnostics-summary"></div>
+          <div id="diagnostics-list" class="diagnostics-list"></div>
+          <p id="diagnostics-message" class="message" role="status"></p>
+        </section>
+      </section>
+
+      <section class="view" data-view="settings">
+        <form id="settings-form" class="settings-form">
+          <section class="panel settings-toolbar">
+            <div class="section-head">
+              <h2>Settings</h2>
+              <label class="checkline inline-check">
+                <input id="advanced-settings-toggle" type="checkbox" />
+                <span>Advanced settings</span>
+              </label>
+            </div>
+          </section>
+
+          <section class="panel settings-panel">
+            <div class="section-head">
+              <h2>Dewey Login</h2>
+            </div>
+            <label class="checkline">
+              <input name="auth_enabled" type="checkbox" />
+              <span>Require Dewey login</span>
+            </label>
+            <div class="grid">
+              <label>Username<input name="auth_username" autocomplete="username" /></label>
+              <label>Password
+                <input name="auth_password" type="password" autocomplete="new-password" data-secret-placeholder="auth_password" />
+                <span class="field-hint" data-secret-hint="auth_password"></span>
+              </label>
+              <label data-advanced-setting>Session hours<input name="auth_session_ttl_hours" type="number" min="1" step="1" /></label>
+            </div>
+            <label class="checkline" data-advanced-setting>
+              <input name="auth_cookie_secure" type="checkbox" />
+              <span>Secure cookie only</span>
+            </label>
+          </section>
+
+          <section class="panel settings-panel">
+            <div class="section-head">
+              <h2>MyAnonamouse Access</h2>
+            </div>
+            <div class="grid">
+              <label>mam_id
+                <input name="mam_id" type="password" autocomplete="off" data-secret-placeholder="mam_id" />
+                <span class="field-hint" data-secret-hint="mam_id"></span>
+              </label>
+              <label data-advanced-setting>URL<input name="mam_url" placeholder="https://www.myanonamouse.net" /></label>
+            </div>
+            <label class="checkline">
+              <input name="mam_block_vip_when_inactive" type="checkbox" />
+              <span>Block VIP imports unless VIP status is active</span>
+            </label>
+            <label class="checkline">
+              <input name="mam_account_auto_refresh_enabled" type="checkbox" />
+              <span>Refresh MyAnonamouse account status automatically</span>
+            </label>
+          </section>
+
+          <section class="panel settings-panel">
+            <div class="section-head">
+              <h2>Search Defaults</h2>
+            </div>
+            <div class="grid">
+              <label>Default MAM category
+                <select name="mam_audiobook_category">
+                  <option value="13">Audiobooks</option>
+                  <option value="14">E-books</option>
+                  <option value="15">Musicology</option>
+                  <option value="16">Radio</option>
+                </select>
+              </label>
+              <label>Default format
+                <select name="mam_default_format">
+                  <option value="">Any format</option>
+                  <option value="m4b">M4B</option>
+                  <option value="mp3">MP3</option>
+                  <option value="m4a">M4A</option>
+                  <option value="flac">FLAC</option>
+                </select>
+              </label>
+              <label>Default language<input name="mam_default_language" placeholder="ENG" /></label>
+              <label>Default availability
+                <select name="mam_default_search_type">
+                  <option value="all">Any</option>
+                  <option value="active">Active</option>
+                  <option value="fl">Freeleech</option>
+                  <option value="fl-VIP">Freeleech or VIP</option>
+                  <option value="VIP">VIP only</option>
+                  <option value="nVIP">No VIP</option>
+                  <option value="inactive">Inactive</option>
+                </select>
+              </label>
+            </div>
+          </section>
+
+          <section class="panel settings-panel">
+            <div class="section-head">
+              <h2>qBittorrent</h2>
+            </div>
+            <div class="grid">
+              <label>URL<input name="qbittorrent_url" placeholder="http://qbittorrent:8080" /></label>
+              <label>Username<input name="qbittorrent_username" autocomplete="off" /></label>
+              <label>Password
+                <input name="qbittorrent_password" type="password" autocomplete="off" data-secret-placeholder="qbittorrent_password" />
+                <span class="field-hint" data-secret-hint="qbittorrent_password"></span>
+              </label>
+              <label>Category<input name="qbittorrent_category" placeholder="dewey" /></label>
+              <label>Save path<input name="qbittorrent_save_path" placeholder="/data/torrents/dewey" /></label>
+              <label data-advanced-setting>Poll seconds<input name="monitor_interval_seconds" type="number" min="5" step="1" /></label>
+            </div>
+            <label class="checkline">
+              <input name="ensure_qbittorrent_category" type="checkbox" />
+              <span>Create category when missing</span>
+            </label>
+          </section>
+
+          <section class="panel settings-panel">
+            <div class="section-head">
+              <h2>Library Paths</h2>
+            </div>
+            <div class="grid">
+              <label>Audiobooks path<input name="audiobooks_dir" placeholder="/data/audiobooks" /></label>
+              <label>Torrents path<input name="torrents_dir" placeholder="/data/torrents" /></label>
+              <label>Unsorted folder<input name="unsorted_folder" placeholder="_unsorted" /></label>
+            </div>
+            <label class="checkline">
+              <input name="include_series_in_book_folder" type="checkbox" />
+              <span>Include series in book folder</span>
+            </label>
+          </section>
+
+          <section class="panel settings-panel">
+            <div class="section-head">
+              <h2>Audiobookshelf Scan</h2>
+            </div>
+            <div class="grid">
+              <label>URL<input name="audiobookshelf_url" placeholder="http://audiobookshelf:80" /></label>
+              <label>API key
+                <input name="audiobookshelf_api_key" type="password" autocomplete="off" data-secret-placeholder="audiobookshelf_api_key" />
+                <span class="field-hint" data-secret-hint="audiobookshelf_api_key"></span>
+              </label>
+              <label>Library ID<input name="audiobookshelf_library_id" /></label>
+            </div>
+            <label class="checkline">
+              <input name="audiobookshelf_scan_enabled" type="checkbox" />
+              <span>Request an Audiobookshelf scan after import</span>
+            </label>
+            <label class="checkline" data-advanced-setting>
+              <input name="audiobookshelf_force_scan" type="checkbox" />
+              <span>Force full scan</span>
+            </label>
+          </section>
+
+          <section class="panel settings-panel" data-advanced-setting>
+            <div class="section-head">
+              <h2>Advanced Tuning</h2>
+            </div>
+            <div class="grid">
+              <label data-advanced-setting>VIP status
+                <select name="mam_vip_status">
+                  <option value="unknown">Unknown</option>
+                  <option value="active">Active</option>
+                  <option value="inactive">Inactive</option>
+                </select>
+              </label>
+              <label data-advanced-setting>Last refreshed<input name="mam_account_last_refresh" readonly /></label>
+              <label data-advanced-setting>Refresh every hours<input name="mam_account_refresh_interval_hours" type="number" min="1" step="1" /></label>
+              <label data-advanced-setting>Store URL<input name="mam_vip_store_url" placeholder="https://www.myanonamouse.net/store.php" /></label>
+              <label data-advanced-setting>Search limit<input name="mam_search_limit" type="number" min="5" max="1000" /></label>
+              <label data-advanced-setting>Minimum relevance<input name="mam_min_relevance" type="number" min="0" max="100" /></label>
+              <label data-advanced-setting>Minimum seeders<input name="mam_min_seeders" type="number" min="0" step="1" /></label>
+              <label data-advanced-setting>Sort<input name="mam_sort_type" placeholder="default" /></label>
+              <label>Author threshold<input name="author_match_threshold" type="number" min="0" max="100" /></label>
+              <label>Metadata threshold<input name="metadata_confidence_threshold" type="number" min="0" max="100" /></label>
+              <label>Fallback threshold<input name="fallback_confidence_threshold" type="number" min="0" max="100" /></label>
+              <label>OpenLibrary URL<input name="openlibrary_url" placeholder="https://openlibrary.org" /></label>
+              <label>User agent<input name="openlibrary_user_agent" /></label>
+              <label>Log level<input name="log_level" placeholder="INFO" /></label>
+            </div>
+            <label class="checkline" data-advanced-setting>
+              <input name="mam_update_seedbox_ip" type="checkbox" />
+              <span>Update dynamic seedbox IP before searching</span>
+            </label>
+          </section>
+
+          <div class="settings-actions">
+            <button type="submit">Save settings</button>
+            <p id="settings-message" class="message" role="status"></p>
+          </div>
+        </form>
+      </section>
+        </main>
+      </div>
+    </div>
+
+    <template id="import-template">
+      <article class="import-item">
+        <button class="import-summary" type="button">
+          <span class="status-pill"></span>
+          <span class="import-title"></span>
+          <span class="import-meta"></span>
+        </button>
+        <div class="progress"><span></span></div>
+        <div class="import-details"></div>
+      </article>
+    </template>
+
+    <script src="/static/app.js?v=20260527-auth" defer></script>
+  </body>
+</html>

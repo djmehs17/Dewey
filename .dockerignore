@@ -1,0 +1,15 @@
+__pycache__/
+*.py[cod]
+.pycache-prefix/
+.pytest_cache/
+.venv/
+venv/
+.git/
+.github/
+config/
+*.sqlite3
+*.sqlite3-*
+*.log
+.env
+*.env
+*:Zone.Identifier

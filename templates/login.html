@@ -1,0 +1,57 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Dewey Login</title>
+    <link rel="icon" href="/static/favicon.svg?v=20260522" type="image/svg+xml" />
+    <link rel="stylesheet" href="/static/style.css?v=20260527-auth" />
+  </head>
+  <body class="auth-page">
+    <main class="auth-shell">
+      <section class="auth-card">
+        <img class="auth-logo" src="/static/dewey-logo.png?v=20260522-raster" alt="Dewey" width="178" height="66" />
+        <form id="login-form" class="auth-form">
+          <label>Username<input name="username" autocomplete="username" required /></label>
+          <label>Password<input name="password" type="password" autocomplete="current-password" required /></label>
+          <button type="submit">Log In</button>
+          <p id="login-message" class="message" role="status"></p>
+        </form>
+      </section>
+    </main>
+    <script>
+      const form = document.querySelector("#login-form");
+      const message = document.querySelector("#login-message");
+      const params = new URLSearchParams(window.location.search);
+      form.addEventListener("submit", async (event) => {
+        event.preventDefault();
+        message.textContent = "Checking credentials...";
+        message.classList.remove("is-error");
+        const button = form.querySelector("button");
+        button.disabled = true;
+        try {
+          const response = await fetch("/api/auth/login", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              username: form.elements.username.value,
+              password: form.elements.password.value,
+            }),
+          });
+          if (!response.ok) {
+            let detail = response.statusText;
+            try {
+              detail = (await response.json()).detail || detail;
+            } catch {}
+            throw new Error(detail);
+          }
+          window.location.href = params.get("next") || "/";
+        } catch (error) {
+          message.textContent = error.message;
+          message.classList.add("is-error");
+          button.disabled = false;
+        }
+      });
+    </script>
+  </body>
+</html>
