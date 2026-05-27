@@ -11,13 +11,13 @@ Pick back up from this list when returning to Dewey:
 ## Active To Do
 
 - Ebook mode and library profiles: separate audiobook and ebook destinations, import rules, and search defaults.
-- Release packaging: publish official GitHub Container Registry images and update the compose example after an image exists.
 
 ## Completed In Current App
 
 - Diagnostics page: quick checks for qBittorrent, MyAnonamouse auth, paths, permissions, and Audiobookshelf scan settings.
 - Metadata improvements: richer matching, narrator/series handling, and clearer review suggestions before publishing.
 - App-level authentication for open-source readiness: optional built-in login/session support for deployments without Cloudflare Access or another trusted auth proxy.
+- Release packaging: GitHub Container Registry publishing workflow and image-based compose example.
 
 ## Parked For Now
 

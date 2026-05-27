@@ -39,11 +39,10 @@ VIP-only results can offer a confirmed 4-week VIP purchase before import, but De
 
 ## Quick Start
 
-Clone the repository, copy the example environment file, and start Dewey:
+Download `docker-compose.example.yml` and `.env.example` from this repository, rename `.env.example` to `.env`, and start Dewey:
 
 ```bash
-cp .env.example .env
-docker compose -f docker-compose.example.yml up -d --build
+docker compose -f docker-compose.example.yml up -d
 ```
 
 Open Dewey:
@@ -52,7 +51,11 @@ Open Dewey:
 http://localhost:8686
 ```
 
-The example compose file builds Dewey locally. Published container images are planned for a future release, but the example will not reference an image until one exists.
+The example compose file uses the published GitHub Container Registry image:
+
+```text
+ghcr.io/djmehs17/dewey:latest
+```
 
 ## First-Time Setup
 
@@ -259,27 +262,6 @@ Do not commit `.env`, `/config`, SQLite databases, logs, `mam_id`, qBittorrent c
 9. Staged files are atomically published into `Author/Book Title/`.
 10. Audiobookshelf scanning is skipped unless the optional scan integration is enabled and configured.
 
-## Local Development
-
-```bash
-python -m venv .venv
-. .venv/bin/activate
-pip install -r requirements.txt
-uvicorn app.main:app --reload --port 8686
-```
-
-Run tests:
-
-```bash
-python -m unittest discover -s tests
-```
-
-With Docker Compose:
-
-```bash
-docker compose -f docker-compose.example.yml run --rm --no-deps --entrypoint python dewey -B -m unittest discover -s tests
-```
-
 ## Project Status
 
 Dewey is early, personal, and security-sensitive. The source is public, but the project is not currently open to general code contributions. See [CONTRIBUTING.md](CONTRIBUTING.md).
@@ -288,7 +270,7 @@ Future work is tracked in [ROADMAP.md](ROADMAP.md).
 
 ## Future Releases
 
-A future release should publish official Dewey images to GitHub Container Registry so deployments can use an image reference such as `ghcr.io/<owner>/dewey:latest` instead of building locally. Until those images are published, prefer the local-build compose example.
+Official Dewey images are published to GitHub Container Registry. Use `latest` for the newest public build, or pin a version tag once tagged releases are available.
 
 ## Security
 

@@ -1,6 +1,6 @@
 services:
   dewey:
-    build: .
+    image: ghcr.io/djmehs17/dewey:latest
     container_name: dewey
     env_file:
       - .env
