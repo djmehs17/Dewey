@@ -162,20 +162,84 @@ Dewey stores a password hash, not the plaintext password. If Dewey is served ove
 
 Configuration is loaded from environment variables first, then `/config/settings.json` if you save changes in the UI.
 
-Important values:
+Most settings can be changed from Dewey's Settings page after the first start. The environment file is mainly useful for initial defaults and Docker deployments.
 
-- `DEWEY_MAM_URL`, `DEWEY_MAM_ID`, `DEWEY_MAM_AUDIOBOOK_CATEGORY`, and `DEWEY_MAM_SEARCH_LIMIT`
-- `DEWEY_MAM_MIN_RELEVANCE`, `DEWEY_MAM_MIN_SEEDERS`, `DEWEY_MAM_DEFAULT_FORMAT`, and `DEWEY_MAM_DEFAULT_LANGUAGE`
-- `DEWEY_MAM_DEFAULT_SEARCH_TYPE` for availability filters such as active, freeleech, VIP, or non-VIP
-- `DEWEY_SEARCH_PROFILES` as JSON if you want to seed configurable Search page profiles from the environment
-- `DEWEY_MAM_VIP_STATUS`, `DEWEY_MAM_BLOCK_VIP_WHEN_INACTIVE`, and `DEWEY_MAM_VIP_STORE_URL`
-- `DEWEY_MAM_ACCOUNT_AUTO_REFRESH_ENABLED` and `DEWEY_MAM_ACCOUNT_REFRESH_INTERVAL_HOURS`
-- `DEWEY_QBITTORRENT_URL`, `DEWEY_QBITTORRENT_USERNAME`, and `DEWEY_QBITTORRENT_PASSWORD`
-- `DEWEY_QBITTORRENT_CATEGORY`, `DEWEY_QBITTORRENT_SAVE_PATH`, and `DEWEY_ENSURE_QBITTORRENT_CATEGORY`
-- `DEWEY_AUDIOBOOKS_DIR`, `DEWEY_TORRENTS_DIR`, and `DEWEY_UNSORTED_FOLDER`
-- optional `DEWEY_AUDIOBOOKSHELF_SCAN_ENABLED`, URL, API key, and library ID
-- optional `DEWEY_AUTH_ENABLED`, `DEWEY_AUTH_USERNAME`, `DEWEY_AUTH_COOKIE_SECURE`, and `DEWEY_AUTH_SESSION_TTL_HOURS`
-- `DEWEY_AUTHOR_MATCH_THRESHOLD`, `DEWEY_METADATA_CONFIDENCE_THRESHOLD`, and `DEWEY_FALLBACK_CONFIDENCE_THRESHOLD`
+### Core Paths
+
+| Variable | Default | What it does |
+| --- | --- | --- |
+| `DEWEY_CONFIG_DIR` | `/config` | Stores Dewey's SQLite database, saved UI settings, and logs. Mount this to persistent storage. |
+| `DEWEY_AUDIOBOOKS_DIR` | `/data/audiobooks` | Destination library folder where Dewey publishes finished imports. This should be the folder Audiobookshelf watches, if you use Audiobookshelf. |
+| `DEWEY_TORRENTS_DIR` | `/data/torrents` | Torrent root Dewey uses to find completed qBittorrent downloads and create `.dewey-staging`. This must line up with qBittorrent's save paths inside the container. |
+| `DEWEY_UNSORTED_FOLDER` | `_unsorted` | Folder under `DEWEY_AUDIOBOOKS_DIR` for imports that need manual metadata review. |
+
+### MyAnonamouse
+
+| Variable | Default | What it does |
+| --- | --- | --- |
+| `DEWEY_MAM_URL` | `https://www.myanonamouse.net` | Base MyAnonamouse URL. Most users should leave this alone. |
+| `DEWEY_MAM_ID` | blank | Your MAM session cookie value. Required for search, torrent downloads, account refresh, and VIP purchase actions. Treat it like a password. |
+| `DEWEY_MAM_AUDIOBOOK_CATEGORY` | `13` | Default main category for searches. `13` is Audiobooks. |
+| `DEWEY_MAM_SEARCH_LIMIT` | `100` | Maximum number of search results Dewey asks MAM for before local filtering. |
+| `DEWEY_MAM_DEFAULT_FORMAT` | blank | Optional default format filter, such as `m4b` or `mp3`. Blank means any format. |
+| `DEWEY_MAM_DEFAULT_LANGUAGE` | blank | Optional default language filter, such as `ENG`. Blank means any language. |
+| `DEWEY_MAM_DEFAULT_SEARCH_TYPE` | `all` | Default availability filter. Common values include `all`, `active`, `fl`, `VIP`, and `nVIP`. |
+| `DEWEY_MAM_BLOCK_VIP_WHEN_INACTIVE` | `true` | Blocks VIP-only imports unless Dewey believes your VIP status is active. |
+| `DEWEY_MAM_ACCOUNT_AUTO_REFRESH_ENABLED` | `true` | Refreshes MAM account status automatically on startup and on the configured interval. |
+| `DEWEY_MAM_ACCOUNT_REFRESH_INTERVAL_HOURS` | `8` | How often Dewey refreshes MAM account status in the background. |
+| `DEWEY_MAM_VIP_STORE_URL` | MAM store URL | Link Dewey opens when you want to view the MAM bonus store manually. |
+
+### qBittorrent
+
+| Variable | Default | What it does |
+| --- | --- | --- |
+| `DEWEY_QBITTORRENT_URL` | `http://qbittorrent:8080` | qBittorrent Web UI/API URL from Dewey's point of view. In Docker Compose, this is often the service name plus port. |
+| `DEWEY_QBITTORRENT_USERNAME` | blank | qBittorrent Web UI username, if auth is enabled. |
+| `DEWEY_QBITTORRENT_PASSWORD` | blank | qBittorrent Web UI password, if auth is enabled. Treat it like a secret. |
+| `DEWEY_QBITTORRENT_CATEGORY` | `dewey` | Category Dewey assigns to added torrents. A dedicated category keeps Dewey downloads separate. |
+| `DEWEY_QBITTORRENT_SAVE_PATH` | `/data/torrents/dewey` | Optional save path for Dewey torrents. This should live under `DEWEY_TORRENTS_DIR` and be visible to both Dewey and qBittorrent. |
+| `DEWEY_ENSURE_QBITTORRENT_CATEGORY` | `true` | Creates the qBittorrent category if it does not exist. |
+| `DEWEY_MONITOR_INTERVAL_SECONDS` | `30` | How often Dewey checks qBittorrent for download progress. |
+
+### Optional Audiobookshelf Scan
+
+| Variable | Default | What it does |
+| --- | --- | --- |
+| `DEWEY_AUDIOBOOKSHELF_SCAN_ENABLED` | `false` | Enables scan requests after imports. Dewey can still import files with this disabled. |
+| `DEWEY_AUDIOBOOKSHELF_URL` | `http://audiobookshelf:80` | Audiobookshelf URL from Dewey's point of view. |
+| `DEWEY_AUDIOBOOKSHELF_API_KEY` | blank | Audiobookshelf API key. Required only if scan requests are enabled. |
+| `DEWEY_AUDIOBOOKSHELF_LIBRARY_ID` | blank | Audiobookshelf library ID to scan. Required only if scan requests are enabled. |
+| `DEWEY_AUDIOBOOKSHELF_FORCE_SCAN` | `false` | Requests a fuller scan when supported. Leave off unless you know you need it. |
+
+### Optional Dewey Login
+
+| Variable | Default | What it does |
+| --- | --- | --- |
+| `DEWEY_AUTH_ENABLED` | `false` | Requires users to log in to Dewey. Leave off if Dewey is already protected by a trusted reverse proxy or VPN. |
+| `DEWEY_AUTH_USERNAME` | `admin` | Username for Dewey's built-in login. |
+| `DEWEY_AUTH_PASSWORD_HASH` | blank | Stored password hash. Prefer setting the password from the UI so Dewey creates this safely. |
+| `DEWEY_AUTH_SESSION_SECRET` | blank | Signing secret for login sessions. Dewey can generate one when auth is configured through the UI. |
+| `DEWEY_AUTH_COOKIE_NAME` | `dewey_session` | Browser cookie name for Dewey sessions. Most users should leave this alone. |
+| `DEWEY_AUTH_COOKIE_SECURE` | `false` | Sends the login cookie only over HTTPS. Turn on for HTTPS deployments; leave off for plain local HTTP testing. |
+| `DEWEY_AUTH_SESSION_TTL_HOURS` | `168` | How long a Dewey login session lasts before re-authentication. |
+
+### Advanced Tuning
+
+| Variable | Default | What it does |
+| --- | --- | --- |
+| `DEWEY_MAM_MIN_RELEVANCE` | `45` | Minimum local match score for search results. Higher values hide more weak matches. |
+| `DEWEY_MAM_MIN_SEEDERS` | `0` | Minimum seed count for search results. |
+| `DEWEY_MAM_SORT_TYPE` | `default` | MAM sort type. Leave as `default` unless you know the documented sort value you want. |
+| `DEWEY_MAM_UPDATE_SEEDBOX_IP` | `false` | Calls MAM's dynamic seedbox IP endpoint before searching. Most users should leave this off. |
+| `DEWEY_SEARCH_PROFILES` | built-in defaults | JSON list of search profiles to seed the UI with. Easier to manage from the Profiles page. |
+| `DEWEY_AUTHOR_MATCH_THRESHOLD` | `85` | Match score needed to reuse an existing author folder. |
+| `DEWEY_METADATA_CONFIDENCE_THRESHOLD` | `74` | Minimum external metadata score before Dewey trusts the match. |
+| `DEWEY_FALLBACK_CONFIDENCE_THRESHOLD` | `65` | Minimum parsed metadata confidence before Dewey publishes directly instead of sending to review. |
+| `DEWEY_INCLUDE_SERIES_IN_BOOK_FOLDER` | `false` | Includes series text in the book folder name when Dewey can identify it. |
+| `DEWEY_OPENLIBRARY_URL` | `https://openlibrary.org` | Metadata lookup base URL. Most users should leave this alone. |
+| `DEWEY_OPENLIBRARY_USER_AGENT` | Dewey default | User-Agent sent to OpenLibrary. |
+| `DEWEY_METADATA_PROVIDER` | `openlibrary` | Metadata provider name. Currently only OpenLibrary is supported. |
+| `DEWEY_LOG_LEVEL` | `INFO` | Logging verbosity. |
 
 MyAnonamouse audiobook search defaults to main category `13`.
 The UI shows the documented main categories by name: Audiobooks, E-books, Musicology, and Radio.
