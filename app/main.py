@@ -251,12 +251,17 @@ async def search(
 @app.post("/api/imports", response_model=ImportJob)
 async def create_import(payload: ImportRequest) -> ImportJob:
     settings = settings_manager.get()
+    media_type = payload.media_type if payload.media_type in {"audiobook", "ebook"} else "audiobook"
     category = payload.category or settings.qbittorrent_category
     result = payload.result.model_dump()
     result["_category"] = category
+    result["_media_type"] = media_type
     if not (result.get("magnet_url") or result.get("download_url")):
         raise HTTPException(status_code=400, detail="Selected result is missing a download URL.")
-    if not _is_supported_audio_result(result):
+    if media_type == "ebook":
+        if not _is_supported_ebook_result(result):
+            raise HTTPException(status_code=400, detail="This result does not look like an ebook format.")
+    elif not _is_supported_audio_result(result):
         raise HTTPException(status_code=400, detail="Dewey currently imports audiobook formats only.")
     if _is_vip_result(result) and settings.mam_block_vip_when_inactive and settings.mam_vip_status != "active":
         try:
@@ -273,7 +278,7 @@ async def create_import(payload: ImportRequest) -> ImportJob:
             )
 
     db = get_db()
-    job_id = db.create_job(query=payload.query, result=result, category=category)
+    job_id = db.create_job(query=payload.query, result=result, category=category, media_type=media_type)
     library_matches = result.get("library_matches") or []
     if library_matches:
         db.add_event(
@@ -289,9 +294,10 @@ async def create_import(payload: ImportRequest) -> ImportJob:
 
 
 @app.get("/api/imports", response_model=list[ImportJob])
-async def list_imports(limit: int = 50) -> list[ImportJob]:
+async def list_imports(limit: int = 50, media_type: str = "") -> list[ImportJob]:
     db = get_db()
-    return [db.to_job(row, include_events=False) for row in db.list_job_rows(limit=limit)]
+    type_filter = media_type if media_type in {"audiobook", "ebook"} else None
+    return [db.to_job(row, include_events=False) for row in db.list_job_rows(limit=limit, media_type=type_filter)]
 
 
 @app.delete("/api/imports")
@@ -416,6 +422,32 @@ def _is_supported_audio_result(result: dict[str, Any]) -> bool:
     if tokens & AUDIO_FORMAT_TOKENS or any(token in {"audio", "audiobook", "audiobooks"} for token in tokens):
         return True
     if tokens & EBOOK_FORMAT_TOKENS:
+        return False
+    return True
+
+
+def _is_supported_ebook_result(result: dict[str, Any]) -> bool:
+    format_tokens = set(re.findall(r"[a-z0-9]+", str(result.get("format") or "").lower()))
+    if format_tokens & EBOOK_FORMAT_TOKENS:
+        return True
+    if format_tokens & AUDIO_FORMAT_TOKENS:
+        return False
+
+    values = [
+        result.get("category"),
+        result.get("title"),
+        result.get("description"),
+        " ".join(result.get("tags") or []),
+    ]
+    tokens = {
+        token
+        for value in values
+        if value
+        for token in re.findall(r"[a-z0-9]+", str(value).lower())
+    }
+    if tokens & EBOOK_FORMAT_TOKENS or any(token in {"ebook", "ebooks"} for token in tokens):
+        return True
+    if tokens & AUDIO_FORMAT_TOKENS or any(token in {"audio", "audiobook", "audiobooks"} for token in tokens):
         return False
     return True
 

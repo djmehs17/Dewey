@@ -27,6 +27,7 @@ async def run_diagnostics(settings: DeweySettings, db: Database) -> DiagnosticsR
         _config_check(settings),
         _database_check(db),
         _path_check("audiobooks-path", "Audiobooks path", settings.audiobooks_dir),
+        _path_check("ebooks-path", "Ebooks path", settings.ebooks_dir, create=True),
         _path_check("torrents-path", "Torrents path", settings.torrents_dir),
         _path_check("staging-path", "Staging path", settings.torrents_dir / ".dewey-staging", create=True),
         await _qbit_check(settings),

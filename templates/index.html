@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <title>Dewey</title>
     <link rel="icon" href="/static/favicon.svg?v=20260522" type="image/svg+xml" />
-    <link rel="stylesheet" href="/static/style.css?v=20260527-auth" />
+    <link rel="stylesheet" href="/static/style.css?v=20260824-ebooks" />
   </head>
   <body>
     <div class="app-shell">
@@ -16,6 +16,7 @@
         </div>
         <nav aria-label="Primary">
           <button class="nav-button is-active" data-view-button="search" type="button">Search</button>
+          <button class="nav-button" data-view-button="ebooks" type="button">Ebooks</button>
           <button class="nav-button" data-view-button="account" type="button">Account</button>
           <button class="nav-button" data-view-button="profiles" type="button">Profiles</button>
           <button class="nav-button" data-view-button="diagnostics" type="button">Diagnostics</button>
@@ -120,6 +121,88 @@
             </div>
           </div>
           <div id="imports" class="imports"></div>
+        </section>
+      </section>
+
+      <section class="view" data-view="ebooks">
+        <section class="panel search-panel">
+          <form id="ebook-search-form" class="search-form">
+            <label for="ebook-query">Title</label>
+            <div class="search-row">
+              <input id="ebook-query" name="query" autocomplete="off" placeholder="The Name of the Wind" required />
+              <button type="submit">Search</button>
+            </div>
+            <div class="filter-row">
+              <label>Format
+                <select id="ebook-format-filter" name="format" aria-label="Format">
+                  <option value="">Any format</option>
+                  <option value="epub">EPUB</option>
+                  <option value="mobi">MOBI</option>
+                  <option value="azw3">AZW3</option>
+                  <option value="pdf">PDF</option>
+                  <option value="cbz">CBZ</option>
+                  <option value="cbr">CBR</option>
+                </select>
+              </label>
+              <label>Availability
+                <select id="ebook-availability-filter" name="search_type">
+                  <option value="all">Any</option>
+                  <option value="active">Active</option>
+                  <option value="fl">Freeleech</option>
+                  <option value="fl-VIP">Freeleech or VIP</option>
+                  <option value="VIP">VIP only</option>
+                  <option value="nVIP">No VIP</option>
+                  <option value="inactive">Inactive</option>
+                </select>
+              </label>
+            </div>
+            <details class="advanced-filters">
+              <summary>Advanced filters</summary>
+              <div class="filter-row advanced-filter-row">
+                <label>Language<input id="ebook-language-filter" name="language" autocomplete="off" placeholder="ENG" /></label>
+                <label>Min seeds<input id="ebook-seeders-filter" name="min_seeders" type="number" min="0" step="1" /></label>
+                <label>Min match<input id="ebook-relevance-filter" name="min_relevance" type="number" min="0" max="100" step="1" /></label>
+              </div>
+            </details>
+          </form>
+          <p id="ebook-search-message" class="message" role="status"></p>
+        </section>
+
+        <section class="panel">
+          <div class="section-head">
+            <h2>Results</h2>
+            <span id="ebook-result-count" class="muted"></span>
+          </div>
+          <div class="table-wrap">
+            <table>
+              <thead>
+                <tr>
+                  <th>Title</th>
+                  <th>Book</th>
+                  <th>Size</th>
+                  <th>Activity</th>
+                  <th>Source</th>
+                  <th></th>
+                </tr>
+              </thead>
+              <tbody id="ebook-results-body">
+                <tr class="empty-row">
+                  <td colspan="6" class="empty">No search yet.</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </section>
+
+        <section class="panel">
+          <div class="section-head">
+            <h2>Imports</h2>
+            <div class="section-actions">
+              <button id="ebook-clear-imports" class="secondary danger" type="button">Clear Finished</button>
+              <button id="ebook-refresh-imports" class="secondary" type="button">Refresh</button>
+            </div>
+          </div>
+          <div id="ebook-imports" class="imports"></div>
         </section>
       </section>
 
@@ -327,6 +410,42 @@
 
           <section class="panel settings-panel">
             <div class="section-head">
+              <h2>Ebooks</h2>
+            </div>
+            <div class="grid">
+              <label>Ebooks path<input name="ebooks_dir" placeholder="/data/ebooks" /></label>
+              <label>Folder layout
+                <select name="ebook_folder_layout">
+                  <option value="subfolder">Subfolder per book</option>
+                  <option value="flat">Flat drop</option>
+                </select>
+              </label>
+              <label>Search category
+                <select name="ebook_search_category">
+                  <option value="14">E-books</option>
+                  <option value="13">Audiobooks</option>
+                  <option value="15">Musicology</option>
+                  <option value="16">Radio</option>
+                </select>
+              </label>
+              <label>Default format
+                <select name="ebook_default_format">
+                  <option value="">Any format</option>
+                  <option value="epub">EPUB</option>
+                  <option value="mobi">MOBI</option>
+                  <option value="azw3">AZW3</option>
+                  <option value="pdf">PDF</option>
+                  <option value="cbz">CBZ</option>
+                  <option value="cbr">CBR</option>
+                </select>
+              </label>
+              <label>Default language<input name="ebook_default_language" placeholder="ENG" /></label>
+            </div>
+            <p class="field-hint">Ebooks are always copied (never hardlinked) so the destination is independent of the torrent. Subfolder layout groups each release under <code>Author/Title/</code>; flat drop copies files straight into the Ebooks path for a Calibre auto-add inbox.</p>
+          </section>
+
+          <section class="panel settings-panel">
+            <div class="section-head">
               <h2>Audiobookshelf Scan</h2>
             </div>
             <div class="grid">
@@ -401,6 +520,6 @@
       </article>
     </template>
 
-    <script src="/static/app.js?v=20260527-auth" defer></script>
+    <script src="/static/app.js?v=20260824-ebooks" defer></script>
   </body>
 </html>

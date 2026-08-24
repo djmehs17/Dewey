@@ -107,6 +107,12 @@ class DeweySettings(BaseSettings):
     fallback_confidence_threshold: int = 65
     include_series_in_book_folder: bool = False
 
+    ebooks_dir: Path = Path("/data/ebooks")
+    ebook_folder_layout: str = "subfolder"
+    ebook_search_category: str = "14"
+    ebook_default_format: str = ""
+    ebook_default_language: str = ""
+
     audiobookshelf_scan_enabled: bool = False
     audiobookshelf_url: str = ""
     audiobookshelf_api_key: str = ""
@@ -137,6 +143,12 @@ class DeweySettings(BaseSettings):
     def validate_vip_status(cls, value: str) -> str:
         normalized = (value or "unknown").strip().lower()
         return normalized if normalized in {"unknown", "active", "inactive"} else "unknown"
+
+    @field_validator("ebook_folder_layout")
+    @classmethod
+    def validate_ebook_folder_layout(cls, value: str) -> str:
+        normalized = (value or "subfolder").strip().lower()
+        return normalized if normalized in {"subfolder", "flat"} else "subfolder"
 
     @property
     def resolved_database_path(self) -> Path:
@@ -185,6 +197,11 @@ class DeweySettings(BaseSettings):
             "metadata_confidence_threshold",
             "fallback_confidence_threshold",
             "include_series_in_book_folder",
+            "ebooks_dir",
+            "ebook_folder_layout",
+            "ebook_search_category",
+            "ebook_default_format",
+            "ebook_default_language",
             "audiobookshelf_scan_enabled",
             "audiobookshelf_url",
             "audiobookshelf_api_key",

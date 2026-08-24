@@ -86,8 +86,9 @@ def move_review_import(current: Path, destination: Path, settings: DeweySettings
     return target
 
 
-def nudge_library_watchers(destination: Path, settings: DeweySettings) -> None:
-    for path in (destination, destination.parent, settings.audiobooks_dir):
+def nudge_library_watchers(destination: Path, settings: DeweySettings, root: Path | None = None) -> None:
+    library_root = root or settings.audiobooks_dir
+    for path in (destination, destination.parent, library_root):
         try:
             os.utime(path, None)
         except OSError:

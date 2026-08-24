@@ -22,6 +22,24 @@ AUDIO_EXTENSIONS = {
     ".wma",
 }
 
+EBOOK_EXTENSIONS = {
+    ".azw",
+    ".azw3",
+    ".azw4",
+    ".cb7",
+    ".cbr",
+    ".cbz",
+    ".djvu",
+    ".epub",
+    ".fb2",
+    ".kfx",
+    ".lit",
+    ".mobi",
+    ".pdb",
+    ".pdf",
+    ".prc",
+}
+
 NOISE_TOKEN_PATTERN = re.compile(
     r"\b(?:"
     r"audiobook|audible|unabridged|abridged|retail|"
@@ -88,18 +106,31 @@ def is_audio_file(path: Path) -> bool:
     return path.suffix.lower() in AUDIO_EXTENSIONS
 
 
-def collect_audio_files(root: Path) -> list[Path]:
+def is_ebook_file(path: Path) -> bool:
+    return path.suffix.lower() in EBOOK_EXTENSIONS
+
+
+def collect_media_files(root: Path, extensions: set[str]) -> list[Path]:
+    matches = {ext.lower() for ext in extensions}
     if root.is_file():
-        return [root] if is_audio_file(root) else []
+        return [root] if root.suffix.lower() in matches else []
     if not root.exists():
         return []
     files: list[Path] = []
     for path in root.rglob("*"):
-        if path.is_file() and is_audio_file(path):
+        if path.is_file() and path.suffix.lower() in matches:
             parts = {part.lower() for part in path.parts}
             if "sample" not in parts and "samples" not in parts:
                 files.append(path)
     return sorted(files)
+
+
+def collect_audio_files(root: Path) -> list[Path]:
+    return collect_media_files(root, AUDIO_EXTENSIONS)
+
+
+def collect_ebook_files(root: Path) -> list[Path]:
+    return collect_media_files(root, EBOOK_EXTENSIONS)
 
 
 def unique_destination(path: Path) -> Path:
@@ -114,22 +145,27 @@ def unique_destination(path: Path) -> Path:
     raise FileExistsError(f"Unable to find unique destination for {path}")
 
 
-def link_or_copy(src: Path, dst: Path) -> tuple[str, Path]:
+def link_or_copy(src: Path, dst: Path, *, prefer_hardlink: bool = True) -> tuple[str, Path]:
     dst.parent.mkdir(parents=True, exist_ok=True)
     dst = unique_destination(dst)
-    try:
-        os.link(src, dst)
-        return "hardlink", dst
-    except OSError as link_error:
+    link_error: OSError | None = None
+    if prefer_hardlink:
         try:
-            shutil.copyfile(src, dst)
-            try:
-                shutil.copymode(src, dst)
-            except OSError:
-                pass
-        except OSError as copy_error:
+            os.link(src, dst)
+            return "hardlink", dst
+        except OSError as exc:
+            link_error = exc
+    try:
+        shutil.copyfile(src, dst)
+        try:
+            shutil.copymode(src, dst)
+        except OSError:
+            pass
+    except OSError as copy_error:
+        if link_error is not None:
             raise OSError(
                 f"Failed to hardlink or copy {src} to {dst}; "
                 f"hardlink failed with {link_error}; copy failed with {copy_error}"
             ) from copy_error
-        return "copy", dst
+        raise OSError(f"Failed to copy {src} to {dst}: {copy_error}") from copy_error
+    return "copy", dst

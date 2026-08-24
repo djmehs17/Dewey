@@ -1,6 +1,11 @@
 import unittest
 
-from app.main import _is_supported_audio_result, _is_vip_result, _mam_account_refresh_interval_seconds
+from app.main import (
+    _is_supported_audio_result,
+    _is_supported_ebook_result,
+    _is_vip_result,
+    _mam_account_refresh_interval_seconds,
+)
 from app.settings import DeweySettings
 
 
@@ -15,6 +20,19 @@ class MainHelperTests(unittest.TestCase):
         self.assertFalse(
             _is_supported_audio_result(
                 {"title": "The Way of Kings", "category": "Audiobook", "format": "epub"}
+            )
+        )
+
+    def test_ebook_guard_allows_ebook_results(self):
+        self.assertTrue(_is_supported_ebook_result({"title": "The Way of Kings", "format": "epub"}))
+
+    def test_ebook_guard_rejects_audio_results(self):
+        self.assertFalse(_is_supported_ebook_result({"title": "The Way of Kings", "format": "m4b"}))
+
+    def test_ebook_guard_prefers_explicit_format_over_category(self):
+        self.assertTrue(
+            _is_supported_ebook_result(
+                {"title": "The Way of Kings", "category": "Audiobooks", "format": "epub"}
             )
         )
 

@@ -35,6 +35,7 @@ class Database:
                     created_at TEXT NOT NULL,
                     updated_at TEXT NOT NULL,
                     status TEXT NOT NULL,
+                    media_type TEXT NOT NULL DEFAULT 'audiobook',
                     query TEXT,
                     torrent_title TEXT NOT NULL,
                     source_indexer TEXT,
@@ -69,6 +70,7 @@ class Database:
                 )
                 """
             )
+            self._ensure_column(conn, "import_jobs", "media_type", "TEXT NOT NULL DEFAULT 'audiobook'")
             conn.execute(
                 "CREATE INDEX IF NOT EXISTS idx_import_jobs_status ON import_jobs(status)"
             )
@@ -76,21 +78,35 @@ class Database:
                 "CREATE INDEX IF NOT EXISTS idx_job_events_job_id ON job_events(job_id)"
             )
 
-    def create_job(self, *, query: str, result: dict[str, Any], category: str) -> int:
+    @staticmethod
+    def _ensure_column(conn: sqlite3.Connection, table: str, column: str, definition: str) -> None:
+        existing = {row["name"] for row in conn.execute(f"PRAGMA table_info({table})").fetchall()}
+        if column not in existing:
+            conn.execute(f"ALTER TABLE {table} ADD COLUMN {column} {definition}")
+
+    def create_job(
+        self,
+        *,
+        query: str,
+        result: dict[str, Any],
+        category: str,
+        media_type: str = "audiobook",
+    ) -> int:
         created = now_iso()
         torrent_url = result.get("magnet_url") or result.get("download_url")
         with self._lock, self.connect() as conn:
             cursor = conn.execute(
                 """
                 INSERT INTO import_jobs (
-                    created_at, updated_at, status, query, torrent_title,
+                    created_at, updated_at, status, media_type, query, torrent_title,
                     source_indexer, size, seeders, result_json, torrent_url
-                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
                 """,
                 (
                     created,
                     created,
                     "queued",
+                    media_type,
                     query,
                     result.get("title") or "Untitled",
                     result.get("indexer"),
@@ -136,8 +152,16 @@ class Database:
                 (job_id,),
             ).fetchone()
 
-    def list_job_rows(self, limit: int = 50) -> list[sqlite3.Row]:
+    def list_job_rows(self, limit: int = 50, media_type: str | None = None) -> list[sqlite3.Row]:
         with self._lock, self.connect() as conn:
+            if media_type:
+                return list(
+                    conn.execute(
+                        "SELECT * FROM import_jobs WHERE media_type = ? "
+                        "ORDER BY datetime(created_at) DESC LIMIT ?",
+                        (media_type, limit),
+                    ).fetchall()
+                )
             return list(
                 conn.execute(
                     "SELECT * FROM import_jobs ORDER BY datetime(created_at) DESC LIMIT ?",
@@ -205,6 +229,7 @@ class Database:
             created_at=row["created_at"],
             updated_at=row["updated_at"],
             status=row["status"],
+            media_type=self._row_media_type(row),
             query=row["query"],
             torrent_title=row["torrent_title"],
             source_indexer=row["source_indexer"],
@@ -224,6 +249,12 @@ class Database:
             error=row["error"],
             events=events,
         )
+
+    @staticmethod
+    def _row_media_type(row: sqlite3.Row) -> str:
+        if "media_type" not in row.keys():
+            return "audiobook"
+        return str(row["media_type"] or "audiobook")
 
     @staticmethod
     def to_event(row: sqlite3.Row) -> JobEvent:

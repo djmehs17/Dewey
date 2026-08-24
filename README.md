@@ -16,6 +16,7 @@ Dewey is intentionally manual. It is not an unattended downloader, ratio-managem
 - Flags weak metadata for manual review.
 - Can optionally request an Audiobookshelf library scan after import.
 - Can optionally require Dewey's own app login.
+- Has a separate Ebooks tab that copies ebooks into a configurable Ebooks folder for a local Calibre (or similar) to pick up. See [Ebooks](#ebooks).
 
 ## What You Need
 
@@ -89,6 +90,7 @@ Recommended shape:
 ```text
 /data
   /audiobooks
+  /ebooks
   /torrents
     /dewey
 ```
@@ -97,12 +99,13 @@ Then configure:
 
 ```text
 DEWEY_AUDIOBOOKS_DIR=/data/audiobooks
+DEWEY_EBOOKS_DIR=/data/ebooks
 DEWEY_TORRENTS_DIR=/data/torrents
 DEWEY_QBITTORRENT_CATEGORY=dewey
 DEWEY_QBITTORRENT_SAVE_PATH=/data/torrents/dewey
 ```
 
-For hardlinks to work, the torrent download path and audiobook library path must be on the same filesystem inside the container. If they are not, Dewey will copy files instead.
+For hardlinks to work, the torrent download path and audiobook library path must be on the same filesystem inside the container. If they are not, Dewey will copy files instead. Ebooks are always copied, so the Ebooks folder can live on a different filesystem (for example a NAS share) without any extra setup.
 
 ## qBittorrent Setup
 
@@ -134,6 +137,21 @@ The relevant settings are:
 - `Refresh MyAnonamouse account status automatically`: refreshes VIP/account status on startup and then on the configured interval.
 
 Dewey can detect VIP-only results and block imports unless your VIP status is active. If you choose to buy VIP from Dewey, the action requires explicit confirmation.
+
+## Ebooks
+
+Dewey has a separate **Ebooks** tab for finding and copying ebooks, kept apart from the audiobook workflow. It reuses the same MyAnonamouse search and qBittorrent download machinery, but the import step is different:
+
+- Searches default to the E-books MyAnonamouse category and ebook formats (EPUB, MOBI, AZW3, PDF, CBZ, CBR, and similar).
+- Finished downloads are **copied** into the configured Ebooks folder. Unlike audiobooks, ebooks are never hardlinked, so the file in your Ebooks folder is fully independent of the torrent.
+- No OpenLibrary lookup and no manual-review step run for ebooks. The idea is that a local library manager such as Calibre reads the real metadata from inside each file and reorganizes it on import, so Dewey just gives it a clean landing spot.
+
+The landing layout is configurable with `Folder layout`:
+
+- `subfolder` (default): each release lands in `Ebooks/Author/Title/` (or `Ebooks/Title/` when the author cannot be parsed). This is collision-proof, keeps multi-format releases together, and works whether you point Calibre's *Auto-add from folder* at it or import manually with *Add books from directories, one book per directory*.
+- `flat`: ebook files are copied straight into the Ebooks folder with no per-release subfolder. Best only when the Ebooks folder is a strict Calibre auto-add inbox.
+
+Dewey does not integrate with Calibre directly and does not need Calibre to be running. It only writes files into the Ebooks folder; anything that watches or imports from that folder is up to you.
 
 ## Optional Audiobookshelf Scan
 
@@ -175,6 +193,16 @@ Most settings can be changed from Dewey's Settings page after the first start. T
 | `DEWEY_AUDIOBOOKS_DIR` | `/data/audiobooks` | Destination library folder where Dewey publishes finished imports. This should be the folder Audiobookshelf watches, if you use Audiobookshelf. |
 | `DEWEY_TORRENTS_DIR` | `/data/torrents` | Torrent root Dewey uses to find completed qBittorrent downloads and create `.dewey-staging`. This must line up with qBittorrent's save paths inside the container. |
 | `DEWEY_UNSORTED_FOLDER` | `_unsorted` | Folder under `DEWEY_AUDIOBOOKS_DIR` for imports that need manual metadata review. |
+| `DEWEY_EBOOKS_DIR` | `/data/ebooks` | Destination folder where the Ebooks tab copies finished ebook imports. |
+
+### Ebooks
+
+| Variable | Default | What it does |
+| --- | --- | --- |
+| `DEWEY_EBOOK_FOLDER_LAYOUT` | `subfolder` | `subfolder` lands each release in `Ebooks/Author/Title/`; `flat` copies files straight into `DEWEY_EBOOKS_DIR`. |
+| `DEWEY_EBOOK_SEARCH_CATEGORY` | `14` | MyAnonamouse main category the Ebooks tab searches. `14` is E-books. |
+| `DEWEY_EBOOK_DEFAULT_FORMAT` | blank | Optional default format filter for the Ebooks tab, such as `epub`. Blank means any format. |
+| `DEWEY_EBOOK_DEFAULT_LANGUAGE` | blank | Optional default language filter for the Ebooks tab, such as `ENG`. Blank means any language. |
 
 ### MyAnonamouse
 

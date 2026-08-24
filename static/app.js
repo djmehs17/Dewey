@@ -1,10 +1,43 @@
 const state = {
-  query: "",
-  results: [],
-  imports: [],
-  openJobId: null,
   settings: {},
   applyingProfile: false,
+  audiobook: { query: "", results: [], imports: [], openJobId: null },
+  ebook: { query: "", results: [], imports: [], openJobId: null },
+};
+
+const SURFACES = {
+  audiobook: {
+    mediaType: "audiobook",
+    resultsBody: "#results-body",
+    resultCount: "#result-count",
+    searchMessage: "#search-message",
+    importsContainer: "#imports",
+    query: "#query",
+    format: "#format-filter",
+    language: "#language-filter",
+    seeders: "#seeders-filter",
+    relevance: "#relevance-filter",
+    availability: "#availability-filter",
+    category: "#category-filter",
+    disabledLabel: "Audio only",
+    disabledTitle: "Dewey imports audiobook formats on this tab.",
+  },
+  ebook: {
+    mediaType: "ebook",
+    resultsBody: "#ebook-results-body",
+    resultCount: "#ebook-result-count",
+    searchMessage: "#ebook-search-message",
+    importsContainer: "#ebook-imports",
+    query: "#ebook-query",
+    format: "#ebook-format-filter",
+    language: "#ebook-language-filter",
+    seeders: "#ebook-seeders-filter",
+    relevance: "#ebook-relevance-filter",
+    availability: "#ebook-availability-filter",
+    category: null,
+    disabledLabel: "Ebook only",
+    disabledTitle: "This tab imports ebook formats only.",
+  },
 };
 
 const DEFAULT_SEARCH_PROFILES = [
@@ -16,6 +49,7 @@ const DEFAULT_SEARCH_PROFILES = [
 
 const VIEW_TITLES = {
   search: "Search",
+  ebooks: "Ebooks",
   account: "Account",
   profiles: "Profiles",
   diagnostics: "Diagnostics",
@@ -24,6 +58,10 @@ const VIEW_TITLES = {
 
 const $ = (selector) => document.querySelector(selector);
 const $$ = (selector) => Array.from(document.querySelectorAll(selector));
+
+function surfaceState(surface) {
+  return state[surface.mediaType];
+}
 
 function setMessage(id, text, isError = false) {
   const node = $(id);
@@ -126,14 +164,27 @@ function hasFormatToken(result, tokens) {
   return tokens.some((token) => new RegExp(`(^|[^a-z0-9])${token}([^a-z0-9]|$)`).test(text));
 }
 
+const AUDIO_FORMAT_TOKENS = ["aac", "flac", "m4a", "m4b", "mp3", "ogg", "opus", "wav", "audiobook", "audiobooks"];
+const EBOOK_FORMAT_TOKENS = ["azw", "azw3", "cb7", "cbr", "cbz", "epub", "mobi", "pdf", "ebook", "ebooks"];
+
 function isAudioImportable(result) {
-  const audioTokens = ["aac", "flac", "m4a", "m4b", "mp3", "ogg", "opus", "wav", "audiobook", "audiobooks"];
-  const ebookTokens = ["azw", "azw3", "cb7", "cbr", "cbz", "epub", "mobi", "pdf"];
-  if (hasFormatToken({ format: result.format }, ebookTokens)) return false;
-  if (hasFormatToken({ format: result.format }, audioTokens)) return true;
-  if (hasFormatToken(result, ebookTokens)) return false;
-  if (hasFormatToken(result, audioTokens)) return true;
+  if (hasFormatToken({ format: result.format }, EBOOK_FORMAT_TOKENS)) return false;
+  if (hasFormatToken({ format: result.format }, AUDIO_FORMAT_TOKENS)) return true;
+  if (hasFormatToken(result, EBOOK_FORMAT_TOKENS)) return false;
+  if (hasFormatToken(result, AUDIO_FORMAT_TOKENS)) return true;
   return true;
+}
+
+function isEbookImportable(result) {
+  if (hasFormatToken({ format: result.format }, EBOOK_FORMAT_TOKENS)) return true;
+  if (hasFormatToken({ format: result.format }, AUDIO_FORMAT_TOKENS)) return false;
+  if (hasFormatToken(result, EBOOK_FORMAT_TOKENS)) return true;
+  if (hasFormatToken(result, AUDIO_FORMAT_TOKENS)) return false;
+  return true;
+}
+
+function isImportable(result, surface) {
+  return surface.mediaType === "ebook" ? isEbookImportable(result) : isAudioImportable(result);
 }
 
 function mamStoreUrl() {
@@ -170,16 +221,17 @@ function renderAccountSummary() {
     .join("");
 }
 
-function renderResults() {
-  const body = $("#results-body");
-  $("#result-count").textContent = state.results.length ? `${state.results.length} found` : "";
-  if (!state.results.length) {
+function renderResults(surface) {
+  const body = $(surface.resultsBody);
+  const results = surfaceState(surface).results;
+  $(surface.resultCount).textContent = results.length ? `${results.length} found` : "";
+  if (!results.length) {
     body.innerHTML = `<tr class="empty-row"><td colspan="6" class="empty">No results.</td></tr>`;
     return;
   }
 
   body.innerHTML = "";
-  state.results.forEach((result) => {
+  results.forEach((result) => {
     const row = document.createElement("tr");
     row.className = "result-row";
 
@@ -252,14 +304,14 @@ function renderResults() {
     const importButton = document.createElement("button");
     let secondaryAction = null;
     importButton.type = "button";
-    if (!isAudioImportable(result)) {
+    if (!isImportable(result, surface)) {
       importButton.disabled = true;
-      importButton.textContent = "Audio only";
-      importButton.title = "Dewey imports audiobook formats right now.";
+      importButton.textContent = surface.disabledLabel;
+      importButton.title = surface.disabledTitle;
     } else if (isVipResult(result) && !canImportVipResult()) {
       importButton.textContent = "Buy VIP";
       importButton.title = "Buy 4 weeks of VIP with bonus points, then import.";
-      importButton.addEventListener("click", () => buyVipAndImport(result, importButton));
+      importButton.addEventListener("click", () => buyVipAndImport(result, importButton, surface));
       const storeLink = document.createElement("a");
       storeLink.href = mamStoreUrl();
       storeLink.target = "_blank";
@@ -269,7 +321,7 @@ function renderResults() {
       secondaryAction = storeLink;
     } else {
       importButton.textContent = "Import";
-      importButton.addEventListener("click", () => importResult(result, importButton));
+      importButton.addEventListener("click", () => importResult(result, importButton, surface));
     }
     action.appendChild(importButton);
     if (secondaryAction) action.appendChild(secondaryAction);
@@ -277,6 +329,10 @@ function renderResults() {
     [titleCell, bookCell, sizeCell, activityCell, sourceCell, action].forEach((cell) => row.appendChild(cell));
     body.appendChild(row);
   });
+}
+
+function renderAllResults() {
+  Object.values(SURFACES).forEach((surface) => renderResults(surface));
 }
 
 function searchProfiles() {
@@ -494,21 +550,24 @@ async function deleteCurrentProfile() {
   await saveSearchProfiles(next, next[0]?.id || null);
 }
 
-async function runSearch(event) {
+async function runSearch(event, surface) {
   event.preventDefault();
-  const query = $("#query").value.trim();
-  const format = $("#format-filter").value;
-  const language = $("#language-filter").value.trim();
-  const minSeeders = $("#seeders-filter").value;
-  const minRelevance = $("#relevance-filter").value;
-  const availability = $("#availability-filter").value;
-  const category = $("#category-filter").value.trim();
+  const query = $(surface.query).value.trim();
+  const format = $(surface.format).value;
+  const language = $(surface.language).value.trim();
+  const minSeeders = $(surface.seeders).value;
+  const minRelevance = $(surface.relevance).value;
+  const availability = $(surface.availability).value;
+  const category = surface.category
+    ? $(surface.category).value.trim()
+    : state.settings.ebook_search_category || "14";
   if (!query) return;
 
-  state.query = query;
-  state.results = [];
-  renderResults();
-  setMessage("#search-message", "Searching MyAnonamouse...");
+  const local = surfaceState(surface);
+  local.query = query;
+  local.results = [];
+  renderResults(surface);
+  setMessage(surface.searchMessage, "Searching MyAnonamouse...");
   try {
     const params = new URLSearchParams({ q: query });
     if (format) params.set("format", format);
@@ -518,56 +577,57 @@ async function runSearch(event) {
     if (availability && availability !== "all") params.set("search_type", availability);
     if (category) params.set("category", category);
     const payload = await api(`/api/search?${params.toString()}`);
-    state.results = payload.results || [];
-    renderResults();
-    setMessage("#search-message", state.results.length ? "" : "No results returned.");
+    local.results = payload.results || [];
+    renderResults(surface);
+    setMessage(surface.searchMessage, local.results.length ? "" : "No results returned.");
   } catch (error) {
-    setMessage("#search-message", error.message, true);
+    setMessage(surface.searchMessage, error.message, true);
   }
 }
 
-async function buyVipAndImport(result, button) {
+async function buyVipAndImport(result, button, surface) {
   const confirmed = window.confirm("Buy 4 weeks of MyAnonamouse VIP with bonus points, then import this torrent?");
   if (!confirmed) return;
   button.disabled = true;
   button.textContent = "Buying VIP";
-  setMessage("#search-message", "Buying 4 weeks of MyAnonamouse VIP...");
+  setMessage(surface.searchMessage, "Buying 4 weeks of MyAnonamouse VIP...");
   try {
     const response = await api("/api/mam/vip", {
       method: "POST",
       body: JSON.stringify({ duration: "4" }),
     });
     populateSettings(response.settings || {});
-    renderResults();
-    setMessage("#search-message", "VIP purchase complete; queueing import.");
-    await importResult(result, button);
+    renderAllResults();
+    setMessage(surface.searchMessage, "VIP purchase complete; queueing import.");
+    await importResult(result, button, surface);
   } catch (error) {
     button.disabled = false;
     button.textContent = "Buy VIP";
-    setMessage("#search-message", error.message, true);
+    setMessage(surface.searchMessage, error.message, true);
   }
 }
 
-async function importResult(result, button) {
+async function importResult(result, button, surface) {
   button.disabled = true;
   button.textContent = "Queued";
   try {
     await api("/api/imports", {
       method: "POST",
-      body: JSON.stringify({ query: state.query, result }),
+      body: JSON.stringify({ query: surfaceState(surface).query, result, media_type: surface.mediaType }),
     });
-    await loadImports();
+    await loadImports(surface);
   } catch (error) {
     button.disabled = false;
     button.textContent = "Import";
-    setMessage("#search-message", error.message, true);
+    setMessage(surface.searchMessage, error.message, true);
   }
 }
 
-function renderImports() {
-  const container = $("#imports");
+function renderImports(surface) {
+  const container = $(surface.importsContainer);
+  const local = surfaceState(surface);
   container.innerHTML = "";
-  if (!state.imports.length) {
+  if (!local.imports.length) {
     const empty = document.createElement("p");
     empty.className = "empty";
     empty.textContent = "No imports yet.";
@@ -576,7 +636,7 @@ function renderImports() {
   }
 
   const template = $("#import-template");
-  state.imports.forEach((job) => {
+  local.imports.forEach((job) => {
     const node = template.content.firstElementChild.cloneNode(true);
     const status = node.querySelector(".status-pill");
     const summary = node.querySelector(".import-summary");
@@ -591,23 +651,23 @@ function renderImports() {
     meta.textContent = [job.source_indexer, bytes(job.size), job.destination_path ? "Imported" : ""].filter(Boolean).join(" | ");
     progress.style.width = `${Math.round((job.progress || 0) * 100)}%`;
 
-    if (job.id === state.openJobId) node.classList.add("is-open");
+    if (job.id === local.openJobId) node.classList.add("is-open");
     summary.addEventListener("click", async () => {
-      state.openJobId = state.openJobId === job.id ? null : job.id;
-      if (state.openJobId) await loadImportDetail(job.id);
-      renderImports();
+      local.openJobId = local.openJobId === job.id ? null : job.id;
+      if (local.openJobId) await loadImportDetail(job.id, surface);
+      renderImports(surface);
     });
 
     details.innerHTML = renderJobDetails(job);
     if (job.status === "review" || job.needs_review) {
-      details.appendChild(renderReviewForm(job));
+      details.appendChild(renderReviewForm(job, surface));
     }
-    details.appendChild(renderImportActions(job));
+    details.appendChild(renderImportActions(job, surface));
     container.appendChild(node);
   });
 }
 
-function renderReviewForm(job) {
+function renderReviewForm(job, surface) {
   const form = document.createElement("form");
   form.className = "review-form";
   form.innerHTML = `
@@ -617,12 +677,12 @@ function renderReviewForm(job) {
   `;
   form.addEventListener("submit", (event) => {
     event.preventDefault();
-    resolveReview(job.id, event.currentTarget);
+    resolveReview(job.id, event.currentTarget, surface);
   });
   return form;
 }
 
-function renderImportActions(job) {
+function renderImportActions(job, surface) {
   const actions = document.createElement("div");
   actions.className = "import-actions";
 
@@ -631,7 +691,7 @@ function renderImportActions(job) {
     retry.type = "button";
     retry.className = "secondary";
     retry.textContent = "Retry";
-    retry.addEventListener("click", () => retryImport(job.id, retry));
+    retry.addEventListener("click", () => retryImport(job.id, retry, surface));
     actions.appendChild(retry);
   }
 
@@ -640,7 +700,7 @@ function renderImportActions(job) {
     remove.type = "button";
     remove.className = "secondary danger";
     remove.textContent = "Remove";
-    remove.addEventListener("click", () => removeImport(job.id, remove));
+    remove.addEventListener("click", () => removeImport(job.id, remove, surface));
     actions.appendChild(remove);
   }
 
@@ -668,7 +728,7 @@ function renderJobDetails(job) {
   return lines.join("") || `<div class="event">No detail yet.</div>`;
 }
 
-async function resolveReview(jobId, form) {
+async function resolveReview(jobId, form, surface) {
   const button = form.querySelector("button");
   const payload = {
     author: form.elements.author.value.trim(),
@@ -682,9 +742,10 @@ async function resolveReview(jobId, form) {
       method: "POST",
       body: JSON.stringify(payload),
     });
-    state.imports = state.imports.map((job) => (job.id === jobId ? detail : job));
-    state.openJobId = jobId;
-    renderImports();
+    const local = surfaceState(surface);
+    local.imports = local.imports.map((job) => (job.id === jobId ? detail : job));
+    local.openJobId = jobId;
+    renderImports(surface);
   } catch (error) {
     button.disabled = false;
     button.textContent = "Apply Review";
@@ -692,14 +753,15 @@ async function resolveReview(jobId, form) {
   }
 }
 
-async function retryImport(jobId, button) {
+async function retryImport(jobId, button, surface) {
   button.disabled = true;
   button.textContent = "Retrying";
   try {
     const detail = await api(`/api/imports/${jobId}/retry`, { method: "POST" });
-    state.imports = state.imports.map((job) => (job.id === jobId ? detail : job));
-    state.openJobId = jobId;
-    renderImports();
+    const local = surfaceState(surface);
+    local.imports = local.imports.map((job) => (job.id === jobId ? detail : job));
+    local.openJobId = jobId;
+    renderImports(surface);
   } catch (error) {
     button.disabled = false;
     button.textContent = "Retry";
@@ -707,15 +769,16 @@ async function retryImport(jobId, button) {
   }
 }
 
-async function removeImport(jobId, button) {
+async function removeImport(jobId, button, surface) {
   if (!window.confirm("Remove this import from Dewey history?")) return;
   button.disabled = true;
   button.textContent = "Removing";
   try {
     await api(`/api/imports/${jobId}`, { method: "DELETE" });
-    state.imports = state.imports.filter((job) => job.id !== jobId);
-    if (state.openJobId === jobId) state.openJobId = null;
-    renderImports();
+    const local = surfaceState(surface);
+    local.imports = local.imports.filter((job) => job.id !== jobId);
+    if (local.openJobId === jobId) local.openJobId = null;
+    renderImports(surface);
   } catch (error) {
     button.disabled = false;
     button.textContent = "Remove";
@@ -723,41 +786,48 @@ async function removeImport(jobId, button) {
   }
 }
 
-async function clearFinishedImports() {
+async function clearFinishedImports(surface) {
   if (!window.confirm("Clear completed, errored, and review imports from Dewey history?")) return;
   try {
-    await api("/api/imports?status=terminal", { method: "DELETE" });
-    if (state.openJobId) state.openJobId = null;
-    await loadImports();
+    await api(`/api/imports?status=terminal`, { method: "DELETE" });
+    const local = surfaceState(surface);
+    local.openJobId = null;
+    await Promise.all(Object.values(SURFACES).map((item) => loadImports(item)));
   } catch (error) {
     console.error(error);
   }
 }
 
-async function loadImports() {
+async function loadImports(surface) {
   try {
-    const summaries = await api("/api/imports");
-    const previous = new Map(state.imports.map((job) => [job.id, job]));
-    state.imports = summaries.map((job) => {
+    const summaries = await api(`/api/imports?media_type=${surface.mediaType}`);
+    const local = surfaceState(surface);
+    const previous = new Map(local.imports.map((job) => [job.id, job]));
+    local.imports = summaries.map((job) => {
       const old = previous.get(job.id);
-      if (old?.events?.length && job.id === state.openJobId) {
+      if (old?.events?.length && job.id === local.openJobId) {
         return { ...old, ...job, events: old.events, warnings: old.warnings };
       }
       return job;
     });
-    if (state.openJobId && state.imports.some((job) => job.id === state.openJobId)) {
-      await loadImportDetail(state.openJobId);
+    if (local.openJobId && local.imports.some((job) => job.id === local.openJobId)) {
+      await loadImportDetail(local.openJobId, surface);
     }
-    renderImports();
+    renderImports(surface);
   } catch (error) {
     console.error(error);
   }
 }
 
-async function loadImportDetail(jobId) {
+function loadAllImports() {
+  return Promise.all(Object.values(SURFACES).map((surface) => loadImports(surface)));
+}
+
+async function loadImportDetail(jobId, surface) {
   try {
     const detail = await api(`/api/imports/${jobId}`);
-    state.imports = state.imports.map((job) => (job.id === jobId ? detail : job));
+    const local = surfaceState(surface);
+    local.imports = local.imports.map((job) => (job.id === jobId ? detail : job));
   } catch (error) {
     console.error(error);
   }
@@ -774,6 +844,14 @@ function applySearchDefaults(settings) {
   $("#category-filter").value = settings.mam_audiobook_category || "13";
 }
 
+function applyEbookDefaults(settings) {
+  $("#ebook-format-filter").value = settings.ebook_default_format || "";
+  $("#ebook-language-filter").value = settings.ebook_default_language || "";
+  $("#ebook-seeders-filter").value = settings.mam_min_seeders ?? "";
+  $("#ebook-relevance-filter").value = settings.mam_min_relevance ?? "";
+  $("#ebook-availability-filter").value = settings.mam_default_search_type || "all";
+}
+
 function populateSettings(settings) {
   state.settings = settings;
   const form = $("#settings-form");
@@ -788,6 +866,7 @@ function populateSettings(settings) {
   });
   renderSecretHints(settings);
   applySearchDefaults(settings);
+  applyEbookDefaults(settings);
   renderAccountSummary();
   renderProfileEditor();
 }
@@ -859,7 +938,7 @@ async function refreshMamAccount(button) {
   try {
     const response = await api("/api/mam/account", { method: "POST" });
     populateSettings(response.settings || {});
-    renderResults();
+    renderAllResults();
     setMessage(messageId, "MyAnonamouse account status refreshed.");
   } catch (error) {
     setMessage(messageId, error.message, true);
@@ -888,7 +967,7 @@ async function saveSettings(event) {
   try {
     const response = await api("/api/settings", { method: "PUT", body: JSON.stringify(payload) });
     populateSettings(response.settings || {});
-    renderResults();
+    renderAllResults();
     setMessage("#settings-message", "Saved.");
   } catch (error) {
     setMessage("#settings-message", error.message, true);
@@ -896,7 +975,8 @@ async function saveSettings(event) {
 }
 
 function setup() {
-  $("#search-form").addEventListener("submit", runSearch);
+  $("#search-form").addEventListener("submit", (event) => runSearch(event, SURFACES.audiobook));
+  $("#ebook-search-form").addEventListener("submit", (event) => runSearch(event, SURFACES.ebook));
   $("#settings-form").addEventListener("submit", saveSettings);
   $("#profile-filter").addEventListener("change", (event) => {
     applySearchProfile(event.currentTarget.value);
@@ -920,8 +1000,10 @@ function setup() {
   $("#advanced-settings-toggle").addEventListener("change", (event) => {
     setAdvancedSettingsVisible(event.currentTarget.checked);
   });
-  $("#refresh-imports").addEventListener("click", loadImports);
-  $("#clear-imports").addEventListener("click", clearFinishedImports);
+  $("#refresh-imports").addEventListener("click", () => loadImports(SURFACES.audiobook));
+  $("#clear-imports").addEventListener("click", () => clearFinishedImports(SURFACES.audiobook));
+  $("#ebook-refresh-imports").addEventListener("click", () => loadImports(SURFACES.ebook));
+  $("#ebook-clear-imports").addEventListener("click", () => clearFinishedImports(SURFACES.ebook));
   $$("[data-view-button]").forEach((button) => {
     button.addEventListener("click", () => {
       activateView(button.dataset.viewButton);
@@ -931,8 +1013,8 @@ function setup() {
   setAdvancedSettingsVisible(window.localStorage.getItem("dewey.showAdvancedSettings") === "1");
   loadAuthStatus();
   loadSettings();
-  loadImports();
-  setInterval(loadImports, 5000);
+  loadAllImports();
+  setInterval(loadAllImports, 5000);
 }
 
 document.addEventListener("DOMContentLoaded", setup);

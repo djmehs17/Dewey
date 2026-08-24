@@ -5,7 +5,7 @@ import json
 import re
 import shutil
 from pathlib import Path
-from typing import Any
+from typing import Any, Callable
 
 from rapidfuzz import fuzz, process
 
@@ -16,7 +16,15 @@ from .integrations.metadata import MetadataClient, MetadataResult
 from .integrations.qbit import QbitClient, hash_from_magnet, is_complete, resolve_source_root
 from .library import nudge_library_watchers
 from .settings import DeweySettings, SettingsManager
-from .utils import clean_release_text, collect_audio_files, link_or_copy, parse_release_name, safe_path_component, unique_destination
+from .utils import (
+    clean_release_text,
+    collect_audio_files,
+    collect_ebook_files,
+    link_or_copy,
+    parse_release_name,
+    safe_path_component,
+    unique_destination,
+)
 
 
 def _metadata_text(value: Any) -> str | None:
@@ -119,6 +127,7 @@ class ImportManager:
             return
 
         result = json.loads(row["result_json"])
+        media_type = self._job_media_type(row, result)
         category = result.get("_category") or settings.qbittorrent_category
         torrent_url = result.get("magnet_url") or result.get("download_url") or row["torrent_url"]
         if not torrent_url:
@@ -148,8 +157,22 @@ class ImportManager:
         )
 
         self.db.update_job(job_id, status="importing")
-        self.db.add_event(job_id, "info", "Download complete; preparing audiobook import")
-        await self._complete_import(job_id, torrent, result, settings, qbit)
+        if media_type == "ebook":
+            self.db.add_event(job_id, "info", "Download complete; preparing ebook import")
+            await self._complete_ebook_import(job_id, torrent, result, settings, qbit)
+        else:
+            self.db.add_event(job_id, "info", "Download complete; preparing audiobook import")
+            await self._complete_import(job_id, torrent, result, settings, qbit)
+
+    @staticmethod
+    def _job_media_type(row: Any, result: dict[str, Any]) -> str:
+        candidate = result.get("_media_type")
+        if not candidate:
+            try:
+                candidate = row["media_type"]
+            except (IndexError, KeyError):
+                candidate = None
+        return candidate if candidate in {"audiobook", "ebook"} else "audiobook"
 
     async def _wait_for_completion(
         self,
@@ -194,7 +217,7 @@ class ImportManager:
         qbit: QbitClient,
     ) -> None:
         source_root = resolve_source_root(torrent, settings.torrents_dir)
-        files = await self._resolve_audio_files(torrent, source_root, qbit)
+        files = await self._resolve_media_files(torrent, source_root, qbit, collect_audio_files)
         if not files:
             raise RuntimeError(f"No audio files were found under {source_root}")
 
@@ -278,6 +301,106 @@ class ImportManager:
         else:
             self.db.add_event(job_id, "info", "Import complete")
 
+    async def _complete_ebook_import(
+        self,
+        job_id: int,
+        torrent: dict[str, Any],
+        result: dict[str, Any],
+        settings: DeweySettings,
+        qbit: QbitClient,
+    ) -> None:
+        source_root = resolve_source_root(torrent, settings.torrents_dir)
+        files = await self._resolve_media_files(torrent, source_root, qbit, collect_ebook_files)
+        if not files:
+            raise RuntimeError(f"No ebook files were found under {source_root}")
+
+        self.db.update_job(job_id, download_path=str(source_root))
+        self.db.add_event(job_id, "info", f"Found {len(files)} ebook file(s)")
+
+        author, title = self._ebook_author_title(result, torrent)
+
+        if settings.ebook_folder_layout == "flat":
+            published_path = self._publish_ebook_flat(job_id, files, settings)
+        else:
+            published_path = self._publish_ebook_subfolder(job_id, files, source_root, author, title, settings)
+
+        nudge_library_watchers(published_path, settings, root=settings.ebooks_dir)
+        self.db.add_event(job_id, "info", f"Published ebook import to {published_path}")
+
+        self.db.update_job(
+            job_id,
+            status="completed",
+            canonical_author=author,
+            book_title=title,
+            destination_path=str(published_path),
+            file_count=len(files),
+            needs_review=False,
+            warnings=[],
+            error=None,
+        )
+        self.db.add_event(job_id, "info", "Ebook import complete")
+
+    def _publish_ebook_flat(self, job_id: int, files: list[Path], settings: DeweySettings) -> Path:
+        destination_dir = settings.ebooks_dir
+        destination_dir.mkdir(parents=True, exist_ok=True)
+        self.db.add_event(job_id, "info", f"Copying ebook file(s) into {destination_dir}")
+        for src in files:
+            target = destination_dir / src.name
+            try:
+                link_or_copy(src, target, prefer_hardlink=False)
+            except OSError as exc:
+                raise RuntimeError(f"Failed to copy {src} to {target}: {exc}") from exc
+        return destination_dir
+
+    def _publish_ebook_subfolder(
+        self,
+        job_id: int,
+        files: list[Path],
+        source_root: Path,
+        author: str | None,
+        title: str | None,
+        settings: DeweySettings,
+    ) -> Path:
+        destination = unique_destination(self._ebook_folder(settings, author, title))
+        staging_destination = self._ebook_staging_destination(job_id, destination, settings)
+        if staging_destination.exists():
+            shutil.rmtree(staging_destination)
+        staging_destination.mkdir(parents=True, exist_ok=True)
+        self.db.add_event(job_id, "info", f"Copying ebook file(s) into staging for {destination}")
+
+        source_base = source_root if source_root.is_dir() else source_root.parent
+        for src in files:
+            try:
+                relative = src.relative_to(source_base)
+            except ValueError:
+                relative = Path(src.name)
+            target = staging_destination / relative
+            try:
+                link_or_copy(src, target, prefer_hardlink=False)
+            except OSError as exc:
+                raise RuntimeError(f"Failed to copy {src} to staging path {target}: {exc}") from exc
+
+        self._publish_staged_import(staging_destination, destination)
+        return destination
+
+    def _ebook_author_title(self, result: dict[str, Any], torrent: dict[str, Any]) -> tuple[str | None, str | None]:
+        release_title = result.get("title") or str(torrent.get("name") or "")
+        parsed = parse_release_name(release_title, include_series_in_title=False)
+        author = _metadata_text(result.get("author")) or parsed.author
+        title = parsed.title or clean_release_text(release_title) or release_title or "Unknown Book"
+        return author, title
+
+    def _ebook_folder(self, settings: DeweySettings, author: str | None, title: str | None) -> Path:
+        book_folder = safe_path_component(str(title or ""), fallback="Unknown Book")
+        if author:
+            author_folder = safe_path_component(str(author), fallback="Unknown Author")
+            return settings.ebooks_dir / author_folder / book_folder
+        return settings.ebooks_dir / book_folder
+
+    def _ebook_staging_destination(self, job_id: int, destination: Path, settings: DeweySettings) -> Path:
+        name = safe_path_component(destination.name, fallback="ebook")
+        return settings.ebooks_dir / ".dewey-staging" / f"job-{job_id}-{name}"
+
     def _staging_destination(self, job_id: int, destination: Path, settings: DeweySettings) -> Path:
         name = safe_path_component(destination.name, fallback="audiobook")
         return settings.torrents_dir / ".dewey-staging" / f"job-{job_id}-{name}"
@@ -291,11 +414,12 @@ class ImportManager:
                 f"Failed to publish staged import {staging_destination} to {destination}: {exc}"
             ) from exc
 
-    async def _resolve_audio_files(
+    async def _resolve_media_files(
         self,
         torrent: dict[str, Any],
         source_root: Path,
         qbit: QbitClient,
+        collector: Callable[[Path], list[Path]],
     ) -> list[Path]:
         torrent_hash = torrent.get("hash")
         files: list[Path] = []
@@ -311,13 +435,13 @@ class ImportManager:
                     if not candidate.is_absolute():
                         candidate = save_path / candidate
                     if candidate.exists():
-                        files.extend(collect_audio_files(candidate))
+                        files.extend(collector(candidate))
             except Exception:
                 files = []
 
         if files:
             return sorted(set(files))
-        return collect_audio_files(source_root)
+        return collector(source_root)
 
     async def _resolve_metadata(
         self,

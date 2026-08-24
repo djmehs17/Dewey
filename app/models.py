@@ -56,6 +56,7 @@ class ImportRequest(BaseModel):
     query: str
     result: SearchResult
     category: str | None = None
+    media_type: str = "audiobook"
 
 
 class MamVipPurchaseRequest(BaseModel):
@@ -85,6 +86,7 @@ class ImportJob(BaseModel):
     created_at: str
     updated_at: str
     status: str
+    media_type: str = "audiobook"
     query: str | None = None
     torrent_title: str
     source_indexer: str | None = None
