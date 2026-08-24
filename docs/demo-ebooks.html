@@ -1,0 +1,206 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Dewey — Ebooks Demo</title>
+    <!--
+      Static mock for README screenshots. No live data: every title here is a
+      public-domain work and all seeder/size/activity numbers are invented.
+      Open this file in a browser and screenshot it. It links the real
+      stylesheet so it looks identical to the running app.
+    -->
+    <link rel="icon" href="../static/favicon.svg" type="image/svg+xml" />
+    <link rel="stylesheet" href="../static/style.css" />
+  </head>
+  <body>
+    <div class="app-shell">
+      <header class="topbar">
+        <div class="brand">
+          <img class="brand-logo" src="../static/dewey-logo.png" alt="Dewey" width="178" height="66" />
+        </div>
+        <nav aria-label="Primary">
+          <button class="nav-button" type="button">Audiobooks</button>
+          <button class="nav-button is-active" type="button">Ebooks</button>
+          <button class="nav-button" type="button">Account</button>
+          <button class="nav-button" type="button">Profiles</button>
+          <button class="nav-button" type="button">Diagnostics</button>
+          <button class="nav-button" type="button">Settings</button>
+        </nav>
+      </header>
+
+      <div class="workspace">
+        <div class="workspace-bar">
+          <strong>Ebooks</strong>
+        </div>
+
+        <main>
+          <section class="view is-active">
+            <section class="panel search-panel">
+              <form class="search-form" onsubmit="return false">
+                <label for="ebook-query">Title</label>
+                <div class="search-row">
+                  <input id="ebook-query" value="Frankenstein" autocomplete="off" />
+                  <button type="submit">Search</button>
+                </div>
+                <div class="filter-row">
+                  <label>Format
+                    <select aria-label="Format">
+                      <option>Any format</option>
+                      <option selected>EPUB</option>
+                    </select>
+                  </label>
+                  <label>Availability
+                    <select>
+                      <option selected>Any</option>
+                    </select>
+                  </label>
+                </div>
+              </form>
+              <p class="message" role="status"></p>
+            </section>
+
+            <section class="panel">
+              <div class="section-head">
+                <h2>Results</h2>
+                <span class="muted">3 found</span>
+              </div>
+              <div class="table-wrap">
+                <table>
+                  <thead>
+                    <tr>
+                      <th>Title</th>
+                      <th>Book</th>
+                      <th>Size</th>
+                      <th>Activity</th>
+                      <th>Source</th>
+                      <th></th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    <tr class="result-row">
+                      <td data-label="Title">
+                        <div class="result-title">Frankenstein; or, The Modern Prometheus</div>
+                        <div class="result-description">1818 text, public domain. EPUB + MOBI + PDF.</div>
+                        <a href="#">Open listing</a>
+                        <div class="result-submeta">Uploaded 2025-01-09 | 3 files</div>
+                      </td>
+                      <td data-label="Book">
+                        <div>Author: Mary Shelley</div>
+                        <div>Language: English</div>
+                      </td>
+                      <td data-label="Size">4 MB</td>
+                      <td data-label="Activity">
+                        <div>63 seed</div>
+                        <div>1 leech</div>
+                        <div>2,918 snatched</div>
+                      </td>
+                      <td data-label="Source">
+                        <span class="badge">99% match</span>
+                        <span class="badge">MyAnonamouse</span>
+                        <span class="badge">E-books</span>
+                        <span class="badge">epub</span>
+                        <span class="badge">Freeleech</span>
+                        <span class="badge">ENG</span>
+                      </td>
+                      <td data-label="Action"><button type="button">Import</button></td>
+                    </tr>
+
+                    <tr class="result-row">
+                      <td data-label="Title">
+                        <div class="result-title">The War of the Worlds</div>
+                        <div class="result-description">Public-domain edition, retail-quality EPUB.</div>
+                        <a href="#">Open listing</a>
+                        <div class="result-submeta">Uploaded 2024-12-01 | 1 file</div>
+                      </td>
+                      <td data-label="Book">
+                        <div>Author: H. G. Wells</div>
+                        <div>Language: English</div>
+                      </td>
+                      <td data-label="Size">1 MB</td>
+                      <td data-label="Activity">
+                        <div>41 seed</div>
+                        <div>0 leech</div>
+                        <div>1,377 snatched</div>
+                      </td>
+                      <td data-label="Source">
+                        <span class="badge">96% match</span>
+                        <span class="badge">MyAnonamouse</span>
+                        <span class="badge">E-books</span>
+                        <span class="badge">epub</span>
+                        <span class="badge">ENG</span>
+                      </td>
+                      <td data-label="Action"><button type="button">Import</button></td>
+                    </tr>
+
+                    <tr class="result-row">
+                      <td data-label="Title">
+                        <div class="result-title">Alice's Adventures in Wonderland</div>
+                        <div class="result-description">Illustrated public-domain edition.</div>
+                        <a href="#">Open listing</a>
+                        <div class="result-submeta">Uploaded 2024-11-22 | 2 files</div>
+                      </td>
+                      <td data-label="Book">
+                        <div>Author: Lewis Carroll</div>
+                        <div>Language: English</div>
+                      </td>
+                      <td data-label="Size">7 MB</td>
+                      <td data-label="Activity">
+                        <div>29 seed</div>
+                        <div>2 leech</div>
+                        <div>945 snatched</div>
+                      </td>
+                      <td data-label="Source">
+                        <span class="badge">93% match</span>
+                        <span class="badge">MyAnonamouse</span>
+                        <span class="badge">E-books</span>
+                        <span class="badge">epub</span>
+                        <span class="badge">pdf</span>
+                        <span class="badge">ENG</span>
+                      </td>
+                      <td data-label="Action"><button type="button">Import</button></td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+            </section>
+
+            <section class="panel">
+              <div class="section-head">
+                <h2>Imports</h2>
+                <div class="section-actions">
+                  <button class="secondary danger" type="button">Clear Finished</button>
+                  <button class="secondary" type="button">Refresh</button>
+                </div>
+              </div>
+              <div class="imports">
+                <article class="import-item is-open">
+                  <button class="import-summary" type="button">
+                    <span class="status-pill completed">completed</span>
+                    <span class="import-title">Frankenstein; or, The Modern Prometheus</span>
+                    <span class="import-meta">MyAnonamouse | 4 MB | Imported</span>
+                  </button>
+                  <div class="progress"><span style="width: 100%"></span></div>
+                  <div class="import-details">
+                    <div><strong>Book:</strong> Mary Shelley - Frankenstein; or, The Modern Prometheus</div>
+                    <div><strong>Path:</strong> /data/Ebooks/Mary Shelley/Frankenstein; or, The Modern Prometheus</div>
+                    <div><strong>Files:</strong> 3</div>
+                    <div class="event-list">
+                      <div class="event info">2025-02-15 09:02:41 | Download complete; preparing ebook import</div>
+                      <div class="event info">2025-02-15 09:02:41 | Found 3 ebook file(s)</div>
+                      <div class="event info">2025-02-15 09:02:42 | Published ebook import to /data/Ebooks/Mary Shelley/Frankenstein; or, The Modern Prometheus</div>
+                      <div class="event info">2025-02-15 09:02:42 | Ebook import complete</div>
+                    </div>
+                    <div class="import-actions">
+                      <button class="secondary danger" type="button">Remove</button>
+                    </div>
+                  </div>
+                </article>
+              </div>
+            </section>
+          </section>
+        </main>
+      </div>
+    </div>
+  </body>
+</html>

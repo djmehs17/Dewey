@@ -1,0 +1,253 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Dewey — Demo</title>
+    <!--
+      Static mock for README screenshots. No live data: every title here is a
+      public-domain work and all seeder/size/activity numbers are invented.
+      Open this file in a browser and screenshot it. It links the real
+      stylesheet so it looks identical to the running app.
+    -->
+    <link rel="icon" href="../static/favicon.svg" type="image/svg+xml" />
+    <link rel="stylesheet" href="../static/style.css" />
+  </head>
+  <body>
+    <div class="app-shell">
+      <header class="topbar">
+        <div class="brand">
+          <img class="brand-logo" src="../static/dewey-logo.png" alt="Dewey" width="178" height="66" />
+        </div>
+        <nav aria-label="Primary">
+          <button class="nav-button is-active" type="button">Audiobooks</button>
+          <button class="nav-button" type="button">Ebooks</button>
+          <button class="nav-button" type="button">Account</button>
+          <button class="nav-button" type="button">Profiles</button>
+          <button class="nav-button" type="button">Diagnostics</button>
+          <button class="nav-button" type="button">Settings</button>
+        </nav>
+      </header>
+
+      <div class="workspace">
+        <div class="workspace-bar">
+          <strong>Audiobooks</strong>
+        </div>
+
+        <main>
+          <section class="view is-active">
+            <section class="panel search-panel">
+              <form class="search-form" onsubmit="return false">
+                <label for="query">Title</label>
+                <div class="search-row">
+                  <input id="query" value="Pride and Prejudice" autocomplete="off" />
+                  <button type="submit">Search</button>
+                </div>
+                <div class="filter-row">
+                  <label>Profile
+                    <select aria-label="Search profile">
+                      <option>Custom</option>
+                    </select>
+                  </label>
+                  <label>Format
+                    <select aria-label="Format">
+                      <option>Any format</option>
+                      <option selected>M4B</option>
+                    </select>
+                  </label>
+                  <label>Availability
+                    <select>
+                      <option selected>Any</option>
+                    </select>
+                  </label>
+                  <label>MAM category
+                    <select>
+                      <option selected>Audiobooks</option>
+                    </select>
+                  </label>
+                </div>
+              </form>
+              <p class="message" role="status"></p>
+            </section>
+
+            <section class="panel">
+              <div class="section-head">
+                <h2>Results</h2>
+                <span class="muted">4 found</span>
+              </div>
+              <div class="table-wrap">
+                <table>
+                  <thead>
+                    <tr>
+                      <th>Title</th>
+                      <th>Book</th>
+                      <th>Size</th>
+                      <th>Activity</th>
+                      <th>Source</th>
+                      <th></th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    <tr class="result-row">
+                      <td data-label="Title">
+                        <div class="result-title">Pride and Prejudice</div>
+                        <div class="result-description">Complete unabridged recording of the public-domain edition.</div>
+                        <a href="#">Open listing</a>
+                        <div class="result-submeta">Uploaded 2024-11-02 | 34 files</div>
+                      </td>
+                      <td data-label="Book">
+                        <div>Author: Jane Austen</div>
+                        <div>Narrator: LibriVox Volunteers</div>
+                        <div>Language: English</div>
+                        <div>Duration: 11h 35m</div>
+                      </td>
+                      <td data-label="Size">320 MB</td>
+                      <td data-label="Activity">
+                        <div>48 seed</div>
+                        <div>3 leech</div>
+                        <div>1,204 snatched</div>
+                        <div>12 comments</div>
+                      </td>
+                      <td data-label="Source">
+                        <span class="badge">98% match</span>
+                        <span class="badge">MyAnonamouse</span>
+                        <span class="badge">Audiobooks</span>
+                        <span class="badge">m4b</span>
+                        <span class="badge">Freeleech</span>
+                        <span class="badge">ENG</span>
+                      </td>
+                      <td data-label="Action"><button type="button">Import</button></td>
+                    </tr>
+
+                    <tr class="result-row">
+                      <td data-label="Title">
+                        <div class="result-title">The Adventures of Sherlock Holmes</div>
+                        <div class="result-description">Twelve short stories, unabridged.</div>
+                        <a href="#">Open listing</a>
+                        <div class="result-submeta">Uploaded 2024-09-18 | 12 files</div>
+                        <div class="result-duplicate">Possible library match: /data/Audiobooks/Arthur Conan Doyle/The Adventures of Sherlock Holmes</div>
+                      </td>
+                      <td data-label="Book">
+                        <div>Author: Arthur Conan Doyle</div>
+                        <div>Narrator: LibriVox Volunteers</div>
+                        <div>Language: English</div>
+                        <div>Duration: 12h 02m</div>
+                      </td>
+                      <td data-label="Size">512 MB</td>
+                      <td data-label="Activity">
+                        <div>31 seed</div>
+                        <div>1 leech</div>
+                        <div>876 snatched</div>
+                      </td>
+                      <td data-label="Source">
+                        <span class="badge">In library</span>
+                        <span class="badge">95% match</span>
+                        <span class="badge">MyAnonamouse</span>
+                        <span class="badge">Audiobooks</span>
+                        <span class="badge">mp3</span>
+                        <span class="badge">ENG</span>
+                      </td>
+                      <td data-label="Action"><button type="button">Import</button></td>
+                    </tr>
+
+                    <tr class="result-row">
+                      <td data-label="Title">
+                        <div class="result-title">Frankenstein; or, The Modern Prometheus</div>
+                        <div class="result-description">Unabridged public-domain recording.</div>
+                        <a href="#">Open listing</a>
+                        <div class="result-submeta">Uploaded 2025-01-07 | 26 files</div>
+                      </td>
+                      <td data-label="Book">
+                        <div>Author: Mary Shelley</div>
+                        <div>Narrator: LibriVox Volunteers</div>
+                        <div>Language: English</div>
+                        <div>Duration: 8h 21m</div>
+                      </td>
+                      <td data-label="Size">210 MB</td>
+                      <td data-label="Activity">
+                        <div>22 seed</div>
+                        <div>0 leech</div>
+                        <div>503 snatched</div>
+                      </td>
+                      <td data-label="Source">
+                        <span class="badge">92% match</span>
+                        <span class="badge">MyAnonamouse</span>
+                        <span class="badge">Audiobooks</span>
+                        <span class="badge">m4b</span>
+                        <span class="badge">ENG</span>
+                      </td>
+                      <td data-label="Action"><button type="button">Import</button></td>
+                    </tr>
+
+                    <tr class="result-row">
+                      <td data-label="Title">
+                        <div class="result-title">Dracula</div>
+                        <div class="result-description">Full-cast public-domain recording.</div>
+                        <a href="#">Open listing</a>
+                        <div class="result-submeta">Uploaded 2024-10-30 | 27 files</div>
+                      </td>
+                      <td data-label="Book">
+                        <div>Author: Bram Stoker</div>
+                        <div>Narrator: LibriVox Volunteers</div>
+                        <div>Language: English</div>
+                        <div>Duration: 15h 28m</div>
+                      </td>
+                      <td data-label="Size">640 MB</td>
+                      <td data-label="Activity">
+                        <div>18 seed</div>
+                        <div>2 leech</div>
+                        <div>664 snatched</div>
+                      </td>
+                      <td data-label="Source">
+                        <span class="badge">89% match</span>
+                        <span class="badge">MyAnonamouse</span>
+                        <span class="badge">Audiobooks</span>
+                        <span class="badge">m4b</span>
+                        <span class="badge">ENG</span>
+                      </td>
+                      <td data-label="Action"><button type="button">Import</button></td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+            </section>
+
+            <section class="panel">
+              <div class="section-head">
+                <h2>Imports</h2>
+                <div class="section-actions">
+                  <button class="secondary danger" type="button">Clear Finished</button>
+                  <button class="secondary" type="button">Refresh</button>
+                </div>
+              </div>
+              <div class="imports">
+                <article class="import-item is-open">
+                  <button class="import-summary" type="button">
+                    <span class="status-pill completed">completed</span>
+                    <span class="import-title">Pride and Prejudice</span>
+                    <span class="import-meta">MyAnonamouse | 320 MB | Imported</span>
+                  </button>
+                  <div class="progress"><span style="width: 100%"></span></div>
+                  <div class="import-details">
+                    <div><strong>Book:</strong> Jane Austen - Pride and Prejudice</div>
+                    <div><strong>Path:</strong> /data/Audiobooks/Jane Austen/Pride and Prejudice</div>
+                    <div><strong>Files:</strong> 34</div>
+                    <div class="event-list">
+                      <div class="event info">2025-02-14 20:11:03 | Download complete; preparing audiobook import</div>
+                      <div class="event info">2025-02-14 20:11:05 | Metadata resolved from openlibrary: Jane Austen / Pride and Prejudice (confidence 96)</div>
+                      <div class="event info">2025-02-14 20:11:06 | Published import to /data/Audiobooks/Jane Austen/Pride and Prejudice</div>
+                      <div class="event info">2025-02-14 20:11:06 | Import complete</div>
+                    </div>
+                    <div class="import-actions">
+                      <button class="secondary danger" type="button">Remove</button>
+                    </div>
+                  </div>
+                </article>
+              </div>
+            </section>
+          </section>
+        </main>
+      </div>
+    </div>
+  </body>
+</html>

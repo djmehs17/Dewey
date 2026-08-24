@@ -1,8 +1,16 @@
 # Dewey
 
-Dewey is a self-hosted audiobook search and import helper for people who already run an audiobook stack. It uses documented MyAnonamouse endpoints to search, downloads the selected private torrent through Dewey, sends it to qBittorrent, waits for completion, and imports audio files into an Audiobookshelf-style library folder.
+Dewey is a self-hosted audiobook and ebook search and import helper for people who already run a media stack. It uses documented MyAnonamouse endpoints to search, downloads the selected private torrent through Dewey, sends it to qBittorrent, waits for completion, and imports the files into a tidy library folder — an Audiobookshelf-style `Author/Book/` layout for audiobooks, or a configurable Ebooks folder for a local Calibre-style tool to pick up.
 
 Dewey is intentionally manual. It is not an unattended downloader, ratio-management system, or automatic purchasing tool.
+
+## Screenshots
+
+> The images below are static mocks rendered from [`docs/demo.html`](docs/demo.html) and [`docs/demo-ebooks.html`](docs/demo-ebooks.html). Every title shown is a public-domain work and all numbers are invented — no real tracker data is displayed.
+
+| Audiobooks | Ebooks |
+| --- | --- |
+| ![Dewey audiobook search and import](docs/screenshots/audiobooks.png) | ![Dewey ebook search and import](docs/screenshots/ebooks.png) |
 
 ## What Dewey Does
 
