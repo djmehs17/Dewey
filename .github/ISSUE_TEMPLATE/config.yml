@@ -1,0 +1,8 @@
+blank_issues_enabled: true
+contact_links:
+  - name: ⚠️ Maintenance status
+    url: https://github.com/djmehs17/Dewey/blob/main/CONTRIBUTING.md
+    about: Dewey is a reference implementation and is not actively maintained. Issues may go unanswered, and forking is encouraged.
+  - name: 🔒 Security report
+    url: https://github.com/djmehs17/Dewey/security/advisories/new
+    about: Report a vulnerability privately. Never post credentials, mam_id/cookies, or API keys in a public issue.

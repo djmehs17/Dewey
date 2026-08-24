@@ -41,7 +41,7 @@ TERMINAL_IMPORT_STATUSES = {"completed", "error", "review"}
 AUDIO_FORMAT_TOKENS = {"aac", "flac", "m4a", "m4b", "mp3", "ogg", "opus", "wav"}
 EBOOK_FORMAT_TOKENS = {"azw", "azw3", "cb7", "cbr", "cbz", "epub", "mobi", "pdf"}
 MIN_ACCOUNT_REFRESH_SECONDS = 60 * 60
-AUTH_EXEMPT_PATHS = {"/login", "/api/auth/status", "/api/auth/login", "/api/auth/logout"}
+AUTH_EXEMPT_PATHS = {"/healthz", "/login", "/api/auth/status", "/api/auth/login", "/api/auth/logout"}
 
 app = FastAPI(title="Dewey", version="0.1.0")
 app.mount("/static", StaticFiles(directory=PROJECT_DIR / "static"), name="static")
@@ -108,6 +108,12 @@ async def require_dewey_auth(request: Request, call_next):
 @app.get("/", response_class=HTMLResponse)
 async def index(request: Request) -> HTMLResponse:
     return templates.TemplateResponse(request, "index.html")
+
+
+@app.get("/healthz")
+async def healthz() -> dict[str, str]:
+    # Liveness probe: no auth, no database access, so uptime monitors can hit it freely.
+    return {"status": "ok", "service": "dewey", "version": app.version}
 
 
 @app.get("/login", response_class=HTMLResponse)

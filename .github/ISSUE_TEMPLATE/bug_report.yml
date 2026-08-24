@@ -1,0 +1,47 @@
+name: Bug report
+description: Report something in Dewey that does not work as documented.
+labels: ["bug"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Dewey is a reference implementation and is **not actively maintained** — this report may go unanswered, and you are welcome to fix it in a fork.
+
+        **Never paste credentials, `mam_id`/cookies, API keys, or private tracker details.** Redact logs before posting.
+  - type: textarea
+    id: what-happened
+    attributes:
+      label: What happened
+      description: What did you expect, and what happened instead?
+    validations:
+      required: true
+  - type: textarea
+    id: repro
+    attributes:
+      label: Steps to reproduce
+      placeholder: |
+        1. Go to ...
+        2. Search / import ...
+        3. See ...
+    validations:
+      required: true
+  - type: textarea
+    id: environment
+    attributes:
+      label: Environment
+      description: How you run Dewey and how paths are mapped.
+      value: |
+        - Dewey image/tag or build:
+        - Deployment (docker compose / other):
+        - qBittorrent version:
+        - Path mapping (audiobooks / ebooks / torrents):
+    validations:
+      required: true
+  - type: textarea
+    id: logs
+    attributes:
+      label: Relevant logs
+      description: Redacted Dewey job events or container logs, if any.
+      render: text
+    validations:
+      required: false

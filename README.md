@@ -292,9 +292,9 @@ Do not commit `.env`, `/config`, SQLite databases, logs, `mam_id`, qBittorrent c
 
 ## Project Status
 
-Dewey is early, personal, and security-sensitive. The source is public, but the project is not currently open to general code contributions. See [CONTRIBUTING.md](CONTRIBUTING.md).
+Dewey is shared as a **reference implementation** under the MIT license. It works and is used in production, but it is **not actively maintained** — think of it as a solid starting point, not a supported product. Issues and pull requests are welcome but may go unanswered, and **forking is encouraged**: if a fork becomes the living, maintained version, that is a good outcome. See [CONTRIBUTING.md](CONTRIBUTING.md).
 
-Future work is tracked in [ROADMAP.md](ROADMAP.md).
+Ideas for future work (not commitments) are in [ROADMAP.md](ROADMAP.md).
 
 ## Future Releases
 
