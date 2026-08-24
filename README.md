@@ -58,7 +58,7 @@ Dewey is a helper, not a full media stack — it plugs into tools you already ru
 
 - **Docker and Docker Compose** — Dewey runs as a container; this is how you start and update it.
 - **qBittorrent**, reachable from Dewey — the BitTorrent client that actually downloads the files. Dewey just tells it what to fetch.
-- **A MyAnonamouse account** and its **`mam_id`** — MyAnonamouse ("MAM") is the private audiobook/ebook tracker Dewey searches. `mam_id` is a session cookie from your logged-in browser; **treat it like a password.**
+- **A MyAnonamouse account** and its **`mam_id`** — `mam_id` is a session API key generated in Preferences>Security on MaM ; **treat it like a password.** Also worth noting it seems to expire if it goes unused for a bit.
 - **A folder for your audiobooks** that Dewey can write to (and an Ebooks folder, if you'll use that tab).
 - *Optional:* **Audiobookshelf** — a self-hosted audiobook server, if you want Dewey to trigger a rescan after importing.
 - *Optional:* **Calibre** (or anything that watches a folder) — to organize ebooks after Dewey drops them in. Dewey doesn't talk to Calibre; it just writes files where you point it.
