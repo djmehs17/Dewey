@@ -1,8 +1,10 @@
 # Dewey
 
-Dewey is a self-hosted audiobook and ebook search and import helper for people who already run a media stack. It uses documented MyAnonamouse endpoints to search, downloads the selected private torrent through Dewey, sends it to qBittorrent, waits for completion, and imports the files into a tidy library folder — an Audiobookshelf-style `Author/Book/` layout for audiobooks, or a configurable Ebooks folder for a local Calibre-style tool to pick up.
+**A self-hosted web app for finding audiobooks and ebooks on MyAnonamouse and filing them away neatly — one click per book, nothing automated.**
 
-Dewey is intentionally manual. It is not an unattended downloader, ratio-management system, or automatic purchasing tool.
+You search from a clean web page; when you pick a result, Dewey downloads the torrent, hands it to qBittorrent, waits for it to finish, and files the result into a tidy folder — an Audiobookshelf-style `Author/Book/` layout for audiobooks, or a plain Ebooks folder for a local tool like Calibre to pick up.
+
+Dewey is deliberately manual and single-purpose. It is **not** an unattended grabber, a ratio manager, or an automatic purchaser — you choose every book, every time.
 
 ## Screenshots
 
@@ -12,31 +14,56 @@ Dewey is intentionally manual. It is not an unattended downloader, ratio-managem
 | --- | --- |
 | ![Dewey audiobook search and import](docs/screenshots/audiobooks.png) | ![Dewey ebook search and import](docs/screenshots/ebooks.png) |
 
-## What Dewey Does
+## Contents
+
+- [How Dewey works](#how-dewey-works)
+- [Before you start](#before-you-start)
+- [Responsible use](#responsible-use)
+- [Quick start](#quick-start)
+- [First-time setup](#first-time-setup)
+- [Path mapping (the #1 gotcha)](#path-mapping)
+- [Ebooks](#ebooks)
+- [Troubleshooting](#troubleshooting)
+- [Configuration reference](#configuration-reference)
+- [Security](#security)
+
+## How Dewey works
+
+Every import is the same four steps, and none of them happen without you:
+
+1. **Search** — you type a title; Dewey asks MyAnonamouse and lists the matching releases.
+2. **Download** — you click **Import**; Dewey grabs the `.torrent` and adds it to qBittorrent.
+3. **Wait** — Dewey watches qBittorrent until the download is complete.
+4. **File it** — Dewey moves the finished files into the right place (your audiobook library, or your Ebooks folder).
+
+```text
+you ──search──▶ Dewey ──sends torrent──▶ qBittorrent ──downloads──▶ Dewey files it ──▶ your library
+```
+
+Dewey never decides what to grab or buy on its own. It's a convenience layer over steps you'd otherwise do by hand.
+
+### What it does, in detail
 
 - Searches MyAnonamouse directly using documented endpoints.
-- Shows audiobook-focused result metadata such as author, narrator, series, language, size, file type, tags, and listing links.
-- Downloads the selected `.torrent` through Dewey and sends it to qBittorrent.
-- Watches qBittorrent until the download completes.
-- Imports audio files into an `Author/Book Title/` folder layout.
-- Tries hardlinks first so torrents can keep seeding, then falls back to copying when hardlinks are not possible.
-- Stages imports before publishing them to the audiobook library.
-- Flags weak metadata for manual review.
-- Can optionally request an Audiobookshelf library scan after import.
-- Can optionally require Dewey's own app login.
-- Has a separate Ebooks tab that copies ebooks into a configurable Ebooks folder for a local Calibre (or similar) to pick up. See [Ebooks](#ebooks).
+- Shows result details such as author, narrator, series, language, size, file type, tags, and listing links.
+- Flags results that look like duplicates of something already in your library.
+- Downloads the selected `.torrent` through Dewey and sends it to qBittorrent, then watches until it finishes.
+- Audiobooks: imports into an `Author/Book Title/` layout, trying hardlinks first (so the torrent can keep seeding) and falling back to a copy when needed. Weak metadata is flagged for a quick manual review.
+- Ebooks: copies files into a separate Ebooks folder for a tool like Calibre to organize. See [Ebooks](#ebooks).
+- Optional: ask Audiobookshelf to rescan after an import, and/or require a login to open Dewey.
 
-## What You Need
+## Before you start
 
-Dewey is not a complete media stack by itself. Before installing Dewey, you should already have:
+Dewey is a helper, not a full media stack — it plugs into tools you already run. If the terms below are unfamiliar, Dewey probably isn't the best first self-hosting project. You'll want:
 
-- Docker and Docker Compose.
-- qBittorrent reachable from Dewey.
-- A MyAnonamouse account and a `mam_id` session value that is allowed to use the documented JSON endpoints.
-- An audiobook library folder that Dewey can write to.
-- Optional: Audiobookshelf, if you want Dewey to request library scans after imports.
+- **Docker and Docker Compose** — Dewey runs as a container; this is how you start and update it.
+- **qBittorrent**, reachable from Dewey — the BitTorrent client that actually downloads the files. Dewey just tells it what to fetch.
+- **A MyAnonamouse account** and its **`mam_id`** — MyAnonamouse ("MAM") is the private audiobook/ebook tracker Dewey searches. `mam_id` is a session cookie from your logged-in browser; **treat it like a password.**
+- **A folder for your audiobooks** that Dewey can write to (and an Ebooks folder, if you'll use that tab).
+- *Optional:* **Audiobookshelf** — a self-hosted audiobook server, if you want Dewey to trigger a rescan after importing.
+- *Optional:* **Calibre** (or anything that watches a folder) — to organize ebooks after Dewey drops them in. Dewey doesn't talk to Calibre; it just writes files where you point it.
 
-You also need to understand where your downloads and library live on disk. The most common setup problem is path mapping: Dewey and qBittorrent must agree on the same container paths.
+The single most common setup problem is **path mapping** — making Dewey and qBittorrent agree on where files live inside their containers. It has [its own section below](#path-mapping); please read it.
 
 ## Responsible Use
 
@@ -48,23 +75,25 @@ VIP-only results can offer a confirmed 4-week VIP purchase before import, but De
 
 ## Quick Start
 
-Download `docker-compose.example.yml` and `.env.example` from this repository, rename `.env.example` to `.env`, and start Dewey:
+You need Docker and Docker Compose installed, plus the services listed in [Before you start](#before-you-start).
 
-```bash
-docker compose -f docker-compose.example.yml up -d
-```
+1. **Make a folder for Dewey** and download two files from this repository into it: `docker-compose.example.yml` and `.env.example`.
+2. **Rename `.env.example` to `.env`.** This holds Dewey's settings and secrets. You can leave most of it blank for now and fill things in from the web UI later.
+3. **Point the volumes at real folders.** Open `docker-compose.example.yml` and make sure the left side of each line under `volumes:` points at folders that exist on your machine — one for Dewey's config, and one for your media/downloads (where your audiobooks, ebooks, and torrents actually live).
+4. **Start Dewey:**
+   ```bash
+   docker compose -f docker-compose.example.yml up -d
+   ```
+5. **Open it in a browser:** `http://localhost:8686` (or your server's address, port 8686).
 
-Open Dewey:
+Images are published to GitHub Container Registry:
 
 ```text
-http://localhost:8686
+ghcr.io/djmehs17/dewey:latest     # newest build
+ghcr.io/djmehs17/dewey:v0.1.0     # a specific, pinned release
 ```
 
-The example compose file uses the published GitHub Container Registry image:
-
-```text
-ghcr.io/djmehs17/dewey:latest
-```
+Pinning to a version tag like `:v0.1.0` is recommended for a stable setup, so an image update never surprises you.
 
 ## First-Time Setup
 
@@ -187,6 +216,18 @@ The simplest setup is:
 
 Dewey stores a password hash, not the plaintext password. If Dewey is served over HTTPS, enable `Secure cookie only` so browsers send the session cookie only over HTTPS. Leave that option off for plain `http://localhost` testing.
 
+## Troubleshooting
+
+Open the **Diagnostics** page first — it checks qBittorrent, MyAnonamouse, and folder permissions, and usually points straight at the problem.
+
+- **Search returns nothing.** Your `mam_id` is probably missing, expired, or not permitted to use the JSON endpoints — re-copy it from MyAnonamouse. Some accounts also need MyAnonamouse's dynamic seedbox IP option enabled (see `DEWEY_MAM_UPDATE_SEEDBOX_IP` in Advanced Tuning).
+- **"This torrent appears to require VIP."** The release is VIP-only and Dewey doesn't see active VIP on your account. Refresh your status on the **Account** page, or reconsider whether you want that release.
+- **An import is stuck on "downloading" and never finishes.** This is almost always **path mapping**. Dewey and qBittorrent must see the same files at the same paths inside their containers — recheck [Path mapping](#path-mapping) and make sure the qBittorrent category and save path match Dewey's settings.
+- **"No audio files were found" / "No ebook files were found."** Dewey found the torrent but not the file types it expected underneath it — usually another path-mapping mismatch, or a release that contains only formats Dewey doesn't recognize.
+- **Audiobook files were copied instead of hardlinked.** The torrent download folder and the audiobook library are on different filesystems inside the container. Copying still works — it just uses more disk and doesn't help seeding. Put both on the same volume if you want hardlinks. (Ebooks are always copied by design.)
+- **An import landed in `_unsorted`.** Dewey wasn't confident about the author/title, so it staged the book for review. Open that import, type the correct author and title, and apply — Dewey moves it into place.
+- **Can't reach Dewey in a browser.** Confirm the container is up (`docker compose ps`), that port 8686 is published, and that you're using the right address. Dewey also answers a small health check at `/healthz` that returns `{"status":"ok"}` when it's running.
+
 ## Configuration Reference
 
 Configuration is loaded from environment variables first, then `/config/settings.json` if you save changes in the UI.
@@ -304,9 +345,9 @@ Dewey is shared as a **reference implementation** under the MIT license. It work
 
 Ideas for future work (not commitments) are in [ROADMAP.md](ROADMAP.md).
 
-## Future Releases
+## Releases
 
-Official Dewey images are published to GitHub Container Registry. Use `latest` for the newest public build, or pin a version tag once tagged releases are available.
+Dewey images are published to GitHub Container Registry at `ghcr.io/djmehs17/dewey`. `latest` tracks the newest build; version tags such as `v0.1.0` are pinned, reproducible releases. Pinning to a version tag is recommended for a stable setup. See the repository's Releases page for what changed in each version.
 
 ## Security
 
