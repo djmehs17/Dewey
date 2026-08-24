@@ -48,7 +48,7 @@ const DEFAULT_SEARCH_PROFILES = [
 ];
 
 const VIEW_TITLES = {
-  search: "Search",
+  search: "Audiobooks",
   ebooks: "Ebooks",
   account: "Account",
   profiles: "Profiles",
