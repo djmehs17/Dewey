@@ -13,7 +13,7 @@ from .database import Database
 from .integrations.audiobookshelf import AudiobookshelfClient
 from .integrations.mam import MamClient
 from .integrations.metadata import MetadataClient, MetadataResult
-from .integrations.qbit import QbitClient, hash_from_magnet, is_complete, resolve_source_root
+from .integrations.qbit import QbitClient, hash_from_magnet, infohash_from_torrent, is_complete, resolve_source_root
 from .library import nudge_library_watchers
 from .settings import DeweySettings, SettingsManager
 from .utils import (
@@ -142,6 +142,10 @@ class ImportManager:
             self.db.add_event(job_id, "info", "Sending torrent to qBittorrent")
             if result.get("requires_dewey_download") or result.get("provider") == "mam":
                 torrent_bytes, filename = await MamClient(settings).download_torrent(result)
+                computed_hash = infohash_from_torrent(torrent_bytes)
+                if computed_hash:
+                    expected_hash = computed_hash
+                    self.db.update_job(job_id, torrent_hash=computed_hash)
                 await qbit.add_torrent_file(torrent_bytes, filename, category)
             else:
                 await qbit.add_torrent(torrent_url, category)

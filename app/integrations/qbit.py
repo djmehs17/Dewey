@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import asyncio
+import hashlib
 import re
 from pathlib import Path
 from typing import Any
@@ -88,18 +89,33 @@ class QbitClient:
 
         for torrent in torrents:
             data = self._torrent_to_dict(torrent)
-            torrent_hash = str(data.get("hash") or "").lower()
-            if normalized_hash and torrent_hash == normalized_hash:
+            if normalized_hash and normalized_hash in self._torrent_hashes(data):
                 return data
 
+            # Fuzzy name matching is only a fallback when no infohash is known.
+            # It must never win on its own for an unrelated torrent, so require
+            # real token overlap (token_set_ratio) in addition to WRatio. WRatio
+            # alone inflates a short title against any long release name that
+            # shares filler words.
+            if normalized_hash:
+                continue
             name = str(data.get("name") or "")
             score = fuzz.WRatio(title.lower(), name.lower())
+            overlap = fuzz.token_set_ratio(title.lower(), name.lower())
             added_bonus = min(float(data.get("added_on") or 0) / 10_000_000_000, 1.0)
             rank = score + added_bonus
-            if score >= 70 and (best is None or rank > best[0]):
+            if score >= 70 and overlap >= 60 and (best is None or rank > best[0]):
                 best = (rank, data)
 
         return best[1] if best else None
+
+    @staticmethod
+    def _torrent_hashes(data: dict[str, Any]) -> set[str]:
+        return {
+            str(data.get(key) or "").lower()
+            for key in ("hash", "infohash_v1", "infohash_v2")
+            if data.get(key)
+        }
 
     def _torrent_files_sync(self, torrent_hash: str) -> list[dict[str, Any]]:
         client = self._client()
@@ -126,6 +142,8 @@ class QbitClient:
         data: dict[str, Any] = {}
         for key in (
             "hash",
+            "infohash_v1",
+            "infohash_v2",
             "name",
             "state",
             "progress",
@@ -139,6 +157,51 @@ class QbitClient:
         ):
             data[key] = getattr(torrent, key, None)
         return data
+
+
+def _bdecode(data: bytes, index: int) -> tuple[Any, int]:
+    marker = data[index : index + 1]
+    if marker == b"i":
+        end = data.index(b"e", index)
+        return int(data[index + 1 : end]), end + 1
+    if marker == b"l":
+        index += 1
+        items: list[Any] = []
+        while data[index : index + 1] != b"e":
+            value, index = _bdecode(data, index)
+            items.append(value)
+        return items, index + 1
+    if marker == b"d":
+        index += 1
+        mapping: dict[Any, Any] = {}
+        while data[index : index + 1] != b"e":
+            key, index = _bdecode(data, index)
+            value, index = _bdecode(data, index)
+            mapping[key] = value
+        return mapping, index + 1
+    if marker.isdigit():
+        colon = data.index(b":", index)
+        length = int(data[index:colon])
+        start = colon + 1
+        return data[start : start + length], start + length
+    raise ValueError(f"Invalid bencode at byte {index}")
+
+
+def infohash_from_torrent(data: bytes | None) -> str | None:
+    """Return the BitTorrent v1 infohash (sha1 of the raw `info` value) for a .torrent."""
+    if not data or data[:1] != b"d":
+        return None
+    try:
+        index = 1
+        while data[index : index + 1] != b"e":
+            key, index = _bdecode(data, index)
+            value_start = index
+            _, index = _bdecode(data, index)
+            if key == b"info":
+                return hashlib.sha1(data[value_start:index]).hexdigest()
+    except (ValueError, IndexError):
+        return None
+    return None
 
 
 def hash_from_magnet(url: str | None) -> str | None:
